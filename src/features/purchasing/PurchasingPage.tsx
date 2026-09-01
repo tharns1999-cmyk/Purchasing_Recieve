@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   PackageCheck,
   AlertTriangle,
@@ -8,7 +7,6 @@ import {
   Package,
   RotateCw,
   Pin,
-  ArrowLeft,
   Settings,
   Inbox,
   BarChart3 as BarChartIcon,
@@ -82,8 +80,6 @@ class PurchasingErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorB
 }
 
 export const PurchasingPage: React.FC = () => {
-  const navigate = useNavigate();
-
   // Navigation Sidebar States
   const [activeTab, setActiveTab] = useState<'receiving' | 'issuelog' | 'analytics' | 'master'>(
     'receiving'
@@ -510,25 +506,17 @@ export const PurchasingPage: React.FC = () => {
           </nav>
         </div>
 
-        {/* Sidebar Bottom Footer: Back to Portal */}
-        <div className={`transition-all border-t border-slate-800/80 ${isExpanded ? 'p-2.5' : 'p-2'}`}>
-          <button
-            type="button"
-            onClick={() => navigate('/portal')}
-            className={`w-full flex items-center transition-all cursor-pointer rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 ${
-              isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center py-2'
-            }`}
-            title="กลับหน้าหลัก Portal"
-          >
-            <div className="w-9 h-9 rounded-xl bg-slate-800/90 flex items-center justify-center shrink-0 text-slate-400">
-              <ArrowLeft className="w-4 h-4" />
-            </div>
+        {/* Sidebar Bottom Footer: App Branding */}
+        <div className={`transition-all border-t border-slate-800/80 ${isExpanded ? 'p-3' : 'p-2'}`}>
+          <div className={`flex items-center text-slate-400 ${isExpanded ? 'gap-2.5 px-2' : 'justify-center'}`}>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
             {isExpanded && (
-              <span className="text-xs font-medium whitespace-nowrap">
-                กลับสู่พอร์ทัล
-              </span>
+              <div className="overflow-hidden">
+                <p className="text-[11px] font-semibold text-slate-300 truncate">RM Purchasing & QC</p>
+                <p className="text-[10px] text-slate-500 font-mono">v1.2.0 (GAS Cloud)</p>
+              </div>
             )}
-          </button>
+          </div>
         </div>
       </aside>
 

@@ -7,13 +7,13 @@ function doGet(e) {
   try {
     const template = HtmlService.createTemplateFromFile('index');
     return template.evaluate()
-      .setTitle('ระบบวางแผนการผลิตรายสัปดาห์ & ระบบจัดซื้อ (Weekly Planner & Purchasing)')
+      .setTitle('ระบบจัดซื้อ & บันทึกรับเข้าวัตถุดิบ (RM Purchasing & QC System)')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
-      message: '🚀 Planning & Purchasing GAS Backend API is running',
+      message: '🚀 Purchasing & QC GAS Backend API is running',
       timestamp: getThaiTimestamp()
     })).setMimeType(ContentService.MimeType.JSON);
   }
