@@ -652,11 +652,11 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex-1 flex flex-col min-h-0 space-y-3">
       {/* ------------------------------------------------------------- */}
       {/* SUB-TAB NAVIGATION & ACTION TOOLBAR */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+      <div className="bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shrink-0">
         {/* Sub-tab pills */}
         <div className="flex items-center bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/60 overflow-x-auto custom-scrollbar">
           <button
@@ -803,33 +803,33 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
       {/* 1. SUPPLIERS DIRECTORY SUB-TAB */}
       {/* ------------------------------------------------------------- */}
       {activeSubTab === 'suppliers' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-200/80 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-200/80 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
             <div>
-              <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-emerald-600" />
                 รายชื่อผู้ส่งมอบวัตถุดิบ (Registered Suppliers)
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 mt-0.5">
                 ตารางแสดงข้อมูลผู้ส่งมอบ/ฟาร์ม รายชื่อผู้ติดต่อ เบอร์โทรศัพท์ และสถานที่จัดส่ง
               </p>
             </div>
-            <div className="text-xs font-mono text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+            <div className="text-xs font-mono text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
               แสดงข้อมูล {filteredSuppliers.length} / {suppliers.length} ราย
             </div>
           </div>
 
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/90 backdrop-blur-xs border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500 sticky top-0 z-10">
-                  <th className="py-3.5 px-4 w-28">รหัส Supplier</th>
-                  <th className="py-3.5 px-4">ชื่อผู้ส่งมอบ / ฟาร์ม</th>
-                  <th className="py-3.5 px-4">ผู้ติดต่อ</th>
-                  <th className="py-3.5 px-4">เบอร์โทรศัพท์</th>
-                  <th className="py-3.5 px-4">อีเมล</th>
-                  <th className="py-3.5 px-4">ที่อยู่จัดส่ง</th>
-                  <th className="py-3.5 px-4 text-center w-24">จัดการ</th>
+          <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar relative">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-2xs">
+                <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                  <th className="py-3 px-4 w-28">รหัส Supplier</th>
+                  <th className="py-3 px-4">ชื่อผู้ส่งมอบ / ฟาร์ม</th>
+                  <th className="py-3 px-4">ผู้ติดต่อ</th>
+                  <th className="py-3 px-4">เบอร์โทรศัพท์</th>
+                  <th className="py-3 px-4">อีเมล</th>
+                  <th className="py-3 px-4">ที่อยู่จัดส่ง</th>
+                  <th className="py-3 px-4 text-center w-24">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/80 text-sm font-normal text-slate-800">
@@ -941,15 +941,17 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
             </table>
           </div>
 
-          <TablePagination
-            currentPage={supPage}
-            totalPages={Math.ceil(filteredSuppliers.length / supPageSize) || 1}
-            totalItems={filteredSuppliers.length}
-            pageSize={supPageSize}
-            onPageChange={setSupPage}
-            onPageSizeChange={setSupPageSize}
-            itemUnitLabel="ผู้ส่งมอบ"
-          />
+          <div className="mt-auto shrink-0 border-t border-slate-200/80">
+            <TablePagination
+              currentPage={supPage}
+              totalPages={Math.ceil(filteredSuppliers.length / supPageSize) || 1}
+              totalItems={filteredSuppliers.length}
+              pageSize={supPageSize}
+              onPageChange={setSupPage}
+              onPageSizeChange={setSupPageSize}
+              itemUnitLabel="ผู้ส่งมอบ"
+            />
+          </div>
         </div>
       )}
 
@@ -957,32 +959,32 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
       {/* 2. RAW MATERIALS (RM) & SUPPLIER LINKING SUB-TAB */}
       {/* ------------------------------------------------------------- */}
       {activeSubTab === 'rms' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-200/80 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-200/80 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
             <div>
-              <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-sky-600" />
                 ทะเบียนวัตถุดิบและการผูก Supplier (Raw Materials Directory)
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 mt-0.5">
                 ตารางวัตถุดิบ พร้อมการเชื่อมโยงผู้ส่งมอบที่จัดหาได้ (Multi-Supplier Linking)
               </p>
             </div>
-            <div className="text-xs font-mono text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+            <div className="text-xs font-mono text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
               แสดงวัตถุดิบ {filteredRms.length} / {rmItems.length} รายการ
             </div>
           </div>
 
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/90 backdrop-blur-xs border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500 sticky top-0 z-10">
-                  <th className="py-3.5 px-4 w-28">รหัส RM</th>
-                  <th className="py-3.5 px-4">ชื่อวัตถุดิบ (Raw Material)</th>
-                  <th className="py-3.5 px-4">หมวดหมู่สเปก QC (Category)</th>
-                  <th className="py-3.5 px-4 w-24">หน่วยนับ</th>
-                  <th className="py-3.5 px-4">Supplier ที่จัดหาได้ (Linked Suppliers)</th>
-                  <th className="py-3.5 px-4 text-center w-24">จัดการ</th>
+          <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar relative">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-2xs">
+                <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                  <th className="py-3 px-4 w-28">รหัส RM</th>
+                  <th className="py-3 px-4">ชื่อวัตถุดิบ (Raw Material)</th>
+                  <th className="py-3 px-4">หมวดหมู่สเปก QC (Category)</th>
+                  <th className="py-3 px-4 w-24">หน่วยนับ</th>
+                  <th className="py-3 px-4">Supplier ที่จัดหาได้ (Linked Suppliers)</th>
+                  <th className="py-3 px-4 text-center w-24">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/80 text-sm font-normal text-slate-800">
@@ -1093,15 +1095,17 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
             </table>
           </div>
 
-          <TablePagination
-            currentPage={rmPage}
-            totalPages={Math.ceil(filteredRms.length / rmPageSize) || 1}
-            totalItems={filteredRms.length}
-            pageSize={rmPageSize}
-            onPageChange={setRmPage}
-            onPageSizeChange={setRmPageSize}
-            itemUnitLabel="วัตถุดิบ"
-          />
+          <div className="mt-auto shrink-0 border-t border-slate-200/80">
+            <TablePagination
+              currentPage={rmPage}
+              totalPages={Math.ceil(filteredRms.length / rmPageSize) || 1}
+              totalItems={filteredRms.length}
+              pageSize={rmPageSize}
+              onPageChange={setRmPage}
+              onPageSizeChange={setRmPageSize}
+              itemUnitLabel="วัตถุดิบ"
+            />
+          </div>
         </div>
       )}
 
@@ -1109,13 +1113,13 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
       {/* 3. QC SAMPLING MATRIX RULES MANAGEMENT SUB-TAB */}
       {/* ------------------------------------------------------------- */}
       {activeSubTab === 'matrix' && (
-        <div className="space-y-5">
+        <div className="flex-1 flex flex-col min-h-0 space-y-3">
           {/* Dedicated Category Selector Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
             {Object.entries(dynamicCategories).map(([catKey, catLabel]) => {
               const isSelected = selectedMatrixCategory === catKey;
               const meta = categoryMeta[catKey] || {
-                icon: <Package className="w-5 h-5 text-purple-600" />,
+                icon: <Package className="w-4 h-4 text-purple-600" />,
                 shortTitle: `${catKey}`,
                 subtext: catLabel,
                 themeColor: 'purple',
@@ -1127,37 +1131,37 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
                   key={catKey}
                   type="button"
                   onClick={() => setSelectedMatrixCategory(catKey)}
-                  className={`text-left p-4 rounded-2xl transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between border ${isSelected
-                      ? 'bg-white border-2 border-purple-600 shadow-md shadow-purple-600/10 ring-4 ring-purple-500/10 text-purple-950'
+                  className={`text-left p-3 rounded-xl transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between border ${isSelected
+                      ? 'bg-white border-2 border-purple-600 shadow-sm ring-2 ring-purple-500/10 text-purple-950'
                       : 'bg-white/80 hover:bg-white border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 text-slate-700'
                     }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl">{meta.icon}</span>
+                      <span className="text-xl">{meta.icon}</span>
                       <div>
-                        <h4 className={`text-sm font-semibold leading-tight ${isSelected ? 'text-purple-950 font-bold' : 'text-slate-900'}`}>
+                        <h4 className={`text-xs font-semibold leading-tight ${isSelected ? 'text-purple-950 font-bold' : 'text-slate-900'}`}>
                           {meta.shortTitle}
                         </h4>
-                        <span className="text-[11px] font-mono text-slate-500 mt-0.5 block">
+                        <span className="text-[10px] font-mono text-slate-500 mt-0.5 block truncate max-w-[140px]">
                           Category: {catKey}
                         </span>
                       </div>
                     </div>
                     {isSelected && (
-                      <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                      <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] shrink-0 shadow-2xs">
                         ✓
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-500 line-clamp-1 mb-3">
+                  <p className="text-[11px] text-slate-500 line-clamp-1 mb-2">
                     {meta.subtext}
                   </p>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px]">
                     <span className="text-slate-500 font-medium">เกณฑ์สุ่มตรวจ</span>
-                    <span className={`px-2 py-0.5 rounded-full font-mono font-medium text-xs ${isSelected ? 'bg-purple-100 text-purple-800 font-semibold' : 'bg-slate-100 text-slate-700'
+                    <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-mono font-medium ${isSelected ? 'bg-purple-100 text-purple-800 font-semibold' : 'bg-slate-100 text-slate-700'
                       }`}>
                       {ruleCount} กฎ
                     </span>
@@ -1168,8 +1172,8 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
           </div>
 
           {/* QC Sampling Rules Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-4 sm:px-5 sm:py-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
+            <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-100 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
                   <Sliders className="w-4 h-4" />
@@ -1183,7 +1187,7 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
                       {selectedMatrixCategory}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-slate-500 mt-0.5">
                     {dynamicCategories[selectedMatrixCategory] || selectedMatrixCategory}
                   </p>
                 </div>
@@ -1204,10 +1208,10 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
               </div>
             </div>
 
-            <div className="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-white border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sticky top-0 z-10">
+            <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar relative">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-2xs">
+                  <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
                     <th className="py-3 px-4 w-12 text-center">#</th>
                     <th className="py-3 px-4">รับเข้า (Receive Qty)</th>
                     <th className="py-3 px-4 text-right">สุ่มตรวจ (Sample)</th>
@@ -1296,15 +1300,17 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
               </table>
             </div>
 
-            <TablePagination
-              currentPage={rulePage}
-              totalPages={Math.ceil(currentRulesList.length / rulePageSize) || 1}
-              totalItems={currentRulesList.length}
-              pageSize={rulePageSize}
-              onPageChange={setRulePage}
-              onPageSizeChange={setRulePageSize}
-              itemUnitLabel="เกณฑ์สุ่มตรวจ"
-            />
+            <div className="mt-auto shrink-0 border-t border-slate-200/80">
+              <TablePagination
+                currentPage={rulePage}
+                totalPages={Math.ceil(currentRulesList.length / rulePageSize) || 1}
+                totalItems={currentRulesList.length}
+                pageSize={rulePageSize}
+                onPageChange={setRulePage}
+                onPageSizeChange={setRulePageSize}
+                itemUnitLabel="เกณฑ์สุ่มตรวจ"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -1313,26 +1319,26 @@ export const PurchasingMasterDataModule: React.FC<PurchasingMasterDataModuleProp
       {/* 4. DEFECT CATEGORIES SUB-TAB */}
       {/* ------------------------------------------------------------- */}
       {activeSubTab === 'defectCats' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-200/80 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-200/80 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
             <div>
-              <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                 <Tag className="w-4 h-4 text-rose-600" />
                 หมวดหมู่ปัญหาคุณภาพ (QC Defect Categories Master Data)
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 mt-0.5">
                 กำหนดและจัดการหมวดหมู่ปัญหาคุณภาพ (ผูกกับ Google Sheet: DB_DefectCategories) เพื่อใช้ใน Dropdown เมนู QC Issue Log
               </p>
             </div>
-            <div className="text-xs font-mono text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+            <div className="text-xs font-mono text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
               รวมทั้งหมด {filteredDefectCats.length} หมวดหมู่
             </div>
           </div>
 
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-slate-100/90 backdrop-blur-xs text-slate-700 text-xs font-semibold uppercase tracking-wider z-10 border-b border-slate-200">
-                <tr>
+          <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar relative">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-2xs">
+                <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
                   <th className="py-3 px-4 w-12 text-center">#</th>
                   <th className="py-3 px-4 w-28">รหัส</th>
                   <th className="py-3 px-4">ชื่อหมวดหมู่ปัญหา</th>

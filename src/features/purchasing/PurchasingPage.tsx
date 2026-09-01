@@ -624,18 +624,18 @@ export const PurchasingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Main Scrollable Content Area — 100% Full-Width Fluid */}
-        <main className="flex-1 min-w-0 h-full overflow-y-auto overflow-x-hidden bg-slate-50 p-3 sm:p-5 lg:p-6">
-          <div className="w-full flex-1 flex flex-col min-h-0 space-y-6 pb-20">
+        {/* Main Content Area — Fixed 100vh Viewport Layout */}
+        <main className="flex-1 min-w-0 h-full overflow-hidden bg-slate-50 p-2 sm:p-3 lg:p-4 flex flex-col">
+          <div className="w-full flex-1 flex flex-col min-h-0">
             <PurchasingErrorBoundary>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex-1 flex flex-col min-h-0 w-full"
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.15 }}
+                  className="h-full flex-1 flex flex-col min-h-0 w-full overflow-hidden"
                 >
                 {activeTab === 'receiving' && (
                   <RMReceivingModule

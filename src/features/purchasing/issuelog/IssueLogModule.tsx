@@ -283,14 +283,14 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
   if (onlyModal && !isModalOpen) return null;
 
   return (
-    <div className={onlyModal ? '' : 'space-y-6'}>
+    <div className={onlyModal ? '' : 'h-full flex-1 flex flex-col min-h-0 space-y-3'}>
       {!onlyModal && (
         <>
           {/* Top Header Card: Stat Badges + Add Issue Button */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="bg-white rounded-xl border border-slate-200/80 p-3 sm:px-4 sm:py-3 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shrink-0">
             {/* Stat Badges */}
             <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar">
-              <div className="flex items-center gap-2.5 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200/70 shrink-0">
+              <div className="flex items-center gap-2.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/70 shrink-0">
                 <AlertOctagon className="w-4 h-4 text-slate-500" />
                 <span className="text-xs text-slate-600 font-medium">ปัญหาทั้งหมด</span>
                 <span className="px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-800 text-xs font-mono font-semibold">
@@ -298,7 +298,7 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2.5 bg-rose-50 px-3.5 py-2 rounded-xl border border-rose-200/80 shrink-0">
+              <div className="flex items-center gap-2.5 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200/80 shrink-0">
                 <AlertTriangle className="w-4 h-4 text-rose-600" />
                 <span className="text-xs text-rose-800 font-medium">รอดำเนินการ</span>
                 <span className="px-2 py-0.5 rounded-full bg-rose-200/80 text-rose-900 text-xs font-mono font-bold">
@@ -306,7 +306,7 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2.5 bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200/80 shrink-0">
+              <div className="flex items-center gap-2.5 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/80 shrink-0">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <span className="text-xs text-emerald-800 font-medium">แก้ไขเรียบร้อย</span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 text-xs font-mono font-bold">
@@ -323,7 +323,7 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                   onOpenManualModal();
                 }
               }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-medium text-xs rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-medium text-xs rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap"
             >
               <span className="text-xs">➕</span>
               <span>บันทึกเคสปัญหาใหม่</span>
@@ -331,9 +331,9 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
           </div>
 
           {/* Main Issue Log Table Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
             {/* Table Controls Header */}
-            <div className="p-4 sm:px-5 sm:py-4 border-b border-slate-100 bg-white flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-100 bg-white flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
                   <AlertOctagon className="w-4 h-4" />
@@ -417,10 +417,10 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
             </div>
 
             {/* Table Content with Scrollbar */}
-            <div className="overflow-x-auto max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-white border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sticky top-0 z-10">
+            <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar relative">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-2xs">
+                  <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
                     <th className="py-3 px-4 w-28">วันที่พบ</th>
                     <th className="py-3 px-4 w-32">Bill No</th>
                     <th className="py-3 px-4">Supplier</th>
@@ -563,16 +563,18 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
               </table>
             </div>
 
-            {/* Table Pagination */}
-            <TablePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredRecords.length}
-              pageSize={pageSize}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
-              itemUnitLabel="รายการปัญหา"
-            />
+            {/* Table Pagination Anchored to Bottom */}
+            <div className="mt-auto shrink-0 border-t border-slate-200/80">
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredRecords.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                itemUnitLabel="รายการปัญหา"
+              />
+            </div>
           </div>
         </>
       )}

@@ -576,7 +576,7 @@ export const PurchasingAnalyticsDashboard: React.FC<PurchasingAnalyticsDashboard
   };
 
   return (
-    <div className="space-y-8">
+    <div className="h-full flex-1 overflow-y-auto overflow-x-hidden space-y-6 pr-1 custom-scrollbar pb-16">
       {/* ------------------------------------------------------------- */}
       {/* UNIFIED ANALYTICS FILTER & TIME RANGE TOOLBAR CARD */}
       {/* ------------------------------------------------------------- */}
