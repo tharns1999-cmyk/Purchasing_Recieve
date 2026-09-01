@@ -1257,10 +1257,10 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
     cleanBase64 = cleanBase64.replace(/[\s\r\n]+/g, '');
 
     const ext = detectedMime === 'image/png' ? 'png' : detectedMime === 'image/webp' ? 'webp' : 'jpg';
-    const cleanBillNo = (billNo || recordId || 'RM').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanBillNo = String(billNo || recordId || 'RM').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F-]/g, '_');
     const timeStampStr = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd-HHmmss');
     const uniqueSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const finalFileName = fileName || `RM-${cleanBillNo}-${timeStampStr}-${uniqueSuffix}.${ext}`;
+    const finalFileName = fileName ? String(fileName) : `RM-${cleanBillNo}-${timeStampStr}-${uniqueSuffix}.${ext}`;
 
     const decodedBytes = Utilities.base64Decode(cleanBase64);
     const blob = Utilities.newBlob(decodedBytes, detectedMime, finalFileName);

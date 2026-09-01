@@ -1577,9 +1577,9 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
     else if (detectedMime.indexOf('pdf') !== -1) ext = 'pdf';
     
     const timestamp = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd_HHmmss');
-    const safeBillNo = (billNo || 'NOBILL').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const safeRecordId = (recordId || 'REC').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const finalFileName = fileName || `RM_${safeBillNo}_${safeRecordId}_${timestamp}.${ext}`;
+    const safeBillNo = String(billNo || 'NOBILL').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F-]/g, '_');
+    const safeRecordId = String(recordId || 'REC').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F-]/g, '_');
+    const finalFileName = fileName ? String(fileName) : `RM_${safeBillNo}_${safeRecordId}_${timestamp}.${ext}`;
     
     const blob = Utilities.newBlob(bytes, detectedMime, finalFileName);
     const file = folder.createFile(blob);

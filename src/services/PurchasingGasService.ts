@@ -489,24 +489,26 @@ export class PurchasingGasService {
   // --- Attachment / Google Drive Methods via GAS REST API ---
 
   static async uploadAttachment(
-    recordId: string,
-    billNo: string,
+    recordId: string | number,
+    billNo: string | number,
     base64Data: string,
     fileName?: string
   ): Promise<ReceivingAttachmentItem> {
-    const finalFileName = fileName || `RM_${billNo || 'NOBILL'}_${Date.now()}.jpg`;
+    const safeBillNo = String(billNo || 'NOBILL').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F-]/g, '_');
+    const safeRecordId = String(recordId || 'REC').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F-]/g, '_');
+    const finalFileName = fileName ? String(fileName) : `RM_${safeBillNo}_${safeRecordId}_${Date.now()}.jpg`;
     
     // Ensure base64 string is cleaned
-    let cleanBase64 = base64Data || '';
+    let cleanBase64 = String(base64Data || '');
     if (cleanBase64.indexOf('data:') === 0 && cleanBase64.indexOf('base64,') > -1) {
       cleanBase64 = cleanBase64.split('base64,')[1] || '';
     }
     cleanBase64 = cleanBase64.replace(/[\s\r\n]+/g, '');
 
     const payload = {
-      recordId,
-      id: recordId,
-      billNo: billNo || '',
+      recordId: String(recordId || ''),
+      id: String(recordId || ''),
+      billNo: String(billNo || ''),
       fileName: finalFileName,
       name: finalFileName,
       mimeType: 'image/jpeg',
