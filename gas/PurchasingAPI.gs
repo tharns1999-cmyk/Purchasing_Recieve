@@ -1234,8 +1234,8 @@ function extractDriveFileId(url) {
  */
 function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType, fileName) {
   try {
-    if (!base64Data) {
-      return { status: 'error', message: 'No base64 data provided' };
+    if (!base64Data || typeof base64Data !== 'string') {
+      return { status: 'error', success: false, message: 'No base64 data provided' };
     }
 
     const folder = getOrCreateReceivingAttachmentsFolder();
@@ -1243,15 +1243,18 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
     let cleanBase64 = base64Data;
     let detectedMime = mimeType || 'image/jpeg';
     
-    if (base64Data.indexOf('data:') === 0) {
-      const parts = base64Data.split(',');
-      const meta = parts[0];
-      cleanBase64 = parts[1];
-      const match = meta.match(/data:(.*?);base64/);
-      if (match && match[1]) {
-        detectedMime = match[1];
+    if (cleanBase64.indexOf('data:') === 0 || cleanBase64.indexOf('base64,') > -1) {
+      const parts = cleanBase64.split('base64,');
+      if (parts.length > 1) {
+        cleanBase64 = parts[1];
+        const match = parts[0].match(/data:(.*?);/);
+        if (match && match[1]) {
+          detectedMime = match[1];
+        }
       }
     }
+
+    cleanBase64 = cleanBase64.replace(/[\s\r\n]+/g, '');
 
     const ext = detectedMime === 'image/png' ? 'png' : detectedMime === 'image/webp' ? 'webp' : 'jpg';
     const cleanBillNo = (billNo || recordId || 'RM').replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -1272,14 +1275,16 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
     const fileId = file.getId();
     const driveViewUrl = 'https://drive.google.com/file/d/' + fileId + '/view?usp=drivesdk';
     const directUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
+    const downloadUrl = file.getDownloadUrl ? file.getDownloadUrl() : driveViewUrl;
 
     const attachmentItem = {
       id: fileId,
       name: finalFileName,
       url: directUrl,
       driveViewUrl: driveViewUrl,
+      downloadUrl: downloadUrl,
       uploadedAt: new Date().toISOString(),
-      sizeBytes: file.getSize()
+      sizeBytes: decodedBytes.length
     };
 
     // Auto-update DB_ReceivingRecords immediately if recordId is provided
@@ -1315,11 +1320,16 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
 
     return {
       status: 'success',
+      success: true,
+      fileUrl: directUrl,
+      driveViewUrl: driveViewUrl,
+      downloadUrl: downloadUrl,
+      fileId: fileId,
       data: attachmentItem
     };
   } catch (err) {
     Logger.log('uploadReceivingAttachmentToDrive error: ' + err.toString());
-    return { status: 'error', message: err.toString() };
+    return { status: 'error', success: false, message: err.toString() };
   }
 }
 

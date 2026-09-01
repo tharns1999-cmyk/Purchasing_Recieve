@@ -138,9 +138,10 @@ export const RMReceivingAttachmentModal: React.FC<RMReceivingAttachmentModalProp
       onSaveAttachments(record.id, updated);
       await PurchasingGasService.saveReceivingAttachments(record.id, updated);
       triggerSuccessFlash();
-    } catch (err) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพเข้า Google Drive';
       console.error('Failed to process/upload image:', err);
-      setErrorMessage('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพเข้า Google Drive');
+      setErrorMessage(errMsg);
     } finally {
       setIsUploading(false);
       setUploadProgressText('');

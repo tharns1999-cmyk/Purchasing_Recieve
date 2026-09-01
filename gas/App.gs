@@ -97,13 +97,15 @@ function handleApiRequest(payload) {
         result = deleteDefectCategory(data.id || payload.id, data.clientMeta || payload.clientMeta);
         break;
 
+      case 'uploadAttachment':
+      case 'uploadAttachmentToDrive':
       case 'uploadReceivingAttachmentToDrive':
         result = uploadReceivingAttachmentToDrive(
-          data.recordId || payload.recordId,
-          data.billNo || payload.billNo,
-          data.base64Data || payload.base64Data,
-          data.mimeType || payload.mimeType || 'image/jpeg',
-          data.fileName || payload.fileName
+          data.recordId || data.id || payload.recordId || payload.id,
+          data.billNo || data.billNumber || payload.billNo || payload.billNumber,
+          data.base64Data || data.fileData || data.image || data.file || payload.base64Data || payload.fileData || payload.image || payload.file,
+          data.mimeType || data.type || payload.mimeType || payload.type || 'image/jpeg',
+          data.fileName || data.name || payload.fileName || payload.name
         );
         break;
 

@@ -41,6 +41,8 @@ export interface ReceivingAttachmentItem {
   name?: string;
   url: string;
   driveViewUrl?: string;
+  downloadUrl?: string;
+  mimeType?: string;
   uploadedAt?: string;
   sizeBytes?: number;
 }

@@ -128,13 +128,15 @@ function handleApiRequest(payload) {
         result = deleteDefectCategory(data.id || payload.id, data.clientMeta || payload.clientMeta);
         break;
 
+      case 'uploadAttachment':
+      case 'uploadAttachmentToDrive':
       case 'uploadReceivingAttachmentToDrive':
         result = uploadReceivingAttachmentToDrive(
-          data.recordId || payload.recordId,
-          data.billNo || payload.billNo,
-          data.base64Data || payload.base64Data,
-          data.mimeType || payload.mimeType || 'image/jpeg',
-          data.fileName || payload.fileName
+          data.recordId || data.id || payload.recordId || payload.id,
+          data.billNo || data.billNumber || payload.billNo || payload.billNumber,
+          data.base64Data || data.fileData || data.image || data.file || payload.base64Data || payload.fileData || payload.image || payload.file,
+          data.mimeType || data.type || payload.mimeType || payload.type || 'image/jpeg',
+          data.fileName || data.name || payload.fileName || payload.name
         );
         break;
 
@@ -1515,20 +1517,26 @@ function logAuditEntry(clientMeta, action, moduleName, recordId, details) {
 // =========================================================================
 
 function getOrCreateReceivingAttachmentsFolder() {
-  const folderName = 'RM_Receiving_Attachments';
-  const folders = DriveApp.getFoldersByName(folderName);
-  
-  if (folders.hasNext()) {
-    return folders.next();
+  const folderNames = ['RM_Attachments', 'RM_Receiving_Attachments'];
+  for (let i = 0; i < folderNames.length; i++) {
+    const folders = DriveApp.getFoldersByName(folderNames[i]);
+    if (folders.hasNext()) {
+      return folders.next();
+    }
   }
   
-  const newFolder = DriveApp.createFolder(folderName);
   try {
-    newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch (e) {
-    Logger.log('Could not set public sharing on attachments folder: ' + e.toString());
+    const newFolder = DriveApp.createFolder('RM_Attachments');
+    try {
+      newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {
+      Logger.log('Could not set public sharing on folder: ' + e.toString());
+    }
+    return newFolder;
+  } catch (err) {
+    Logger.log('DriveApp.createFolder failed, using Root folder: ' + err.toString());
+    return DriveApp.getRootFolder();
   }
-  return newFolder;
 }
 
 function extractDriveFileId(url) {
@@ -1539,19 +1547,28 @@ function extractDriveFileId(url) {
 
 function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType, fileName) {
   try {
+    if (!base64Data || typeof base64Data !== 'string') {
+      return { status: 'error', success: false, message: 'No image data provided' };
+    }
+
     const folder = getOrCreateReceivingAttachmentsFolder();
     
     let cleanBase64 = base64Data;
     let detectedMime = mimeType || 'image/jpeg';
     
-    if (base64Data.indexOf('data:') === 0) {
-      const parts = base64Data.split(',');
-      const match = parts[0].match(/:(.*?);/);
-      if (match && match[1]) {
-        detectedMime = match[1];
+    if (cleanBase64.indexOf('data:') === 0 || cleanBase64.indexOf('base64,') > -1) {
+      const parts = cleanBase64.split('base64,');
+      if (parts.length > 1) {
+        cleanBase64 = parts[1];
+        const match = parts[0].match(/data:(.*?);/);
+        if (match && match[1]) {
+          detectedMime = match[1];
+        }
       }
-      cleanBase64 = parts[1];
     }
+    
+    // Remove all whitespace, line breaks or carriage returns from base64 string
+    cleanBase64 = cleanBase64.replace(/[\s\r\n]+/g, '');
     
     const bytes = Utilities.base64Decode(cleanBase64);
     let ext = 'jpg';
@@ -1569,19 +1586,28 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
     
     try {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (e) {}
+    } catch (e) {
+      Logger.log('Could not set public sharing on uploaded file: ' + e.toString());
+    }
     
     const fileId = file.getId();
     const driveViewUrl = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
     const directImageUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+    const downloadUrl = file.getDownloadUrl ? file.getDownloadUrl() : driveViewUrl;
     
     return {
       status: 'success',
+      success: true,
+      fileUrl: directImageUrl,
+      driveViewUrl: driveViewUrl,
+      downloadUrl: downloadUrl,
+      fileId: fileId,
       data: {
         id: fileId,
         name: finalFileName,
         url: directImageUrl,
         driveViewUrl: driveViewUrl,
+        downloadUrl: downloadUrl,
         mimeType: detectedMime,
         size: bytes.length,
         uploadedAt: getThaiTimestamp()
@@ -1591,6 +1617,7 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
     Logger.log('uploadReceivingAttachmentToDrive failed: ' + err.toString());
     return {
       status: 'error',
+      success: false,
       message: err.toString()
     };
   }

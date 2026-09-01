@@ -494,27 +494,51 @@ export class PurchasingGasService {
     base64Data: string,
     fileName?: string
   ): Promise<ReceivingAttachmentItem> {
-    const res = await this.callGasApi<{
-      status: string;
-      data?: ReceivingAttachmentItem;
-      message?: string;
-    }>(
-      'uploadReceivingAttachmentToDrive',
-      {
-        recordId,
-        billNo,
-        base64Data,
-        mimeType: 'image/jpeg',
-        fileName,
-      },
+    const finalFileName = fileName || `RM_${billNo || 'NOBILL'}_${Date.now()}.jpg`;
+    
+    // Ensure base64 string is cleaned
+    let cleanBase64 = base64Data || '';
+    if (cleanBase64.indexOf('data:') === 0 && cleanBase64.indexOf('base64,') > -1) {
+      cleanBase64 = cleanBase64.split('base64,')[1] || '';
+    }
+    cleanBase64 = cleanBase64.replace(/[\s\r\n]+/g, '');
+
+    const payload = {
+      recordId,
+      id: recordId,
+      billNo: billNo || '',
+      fileName: finalFileName,
+      name: finalFileName,
+      mimeType: 'image/jpeg',
+      type: 'image/jpeg',
+      base64Data: cleanBase64,
+      fileData: cleanBase64,
+      image: cleanBase64,
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await this.callGasApi<any>(
+      'uploadAttachment',
+      payload,
       60000
     );
 
-    if (res && res.status === 'success' && res.data) {
-      console.log('[PurchasingGasService] ✅ File uploaded to Google Drive:', res.data.name, res.data.driveViewUrl);
-      return normalizeAttachmentItem(res.data);
+    if (res && (res.status === 'success' || res.success === true)) {
+      const fileId = String(res.data?.id || res.fileId || res.id || `att-${Date.now()}`);
+      const itemData: ReceivingAttachmentItem = {
+        id: fileId,
+        name: String(res.data?.name || finalFileName),
+        url: String(res.data?.url || res.fileUrl || res.url || `https://lh3.googleusercontent.com/d/${fileId}`),
+        driveViewUrl: String(res.data?.driveViewUrl || res.driveViewUrl || `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`),
+        downloadUrl: res.data?.downloadUrl || res.downloadUrl,
+        mimeType: 'image/jpeg',
+        uploadedAt: res.data?.uploadedAt || new Date().toISOString(),
+        sizeBytes: res.data?.size || res.data?.sizeBytes,
+      };
+      console.log('[PurchasingGasService] ✅ File uploaded successfully to Google Drive:', itemData.name, itemData.url);
+      return normalizeAttachmentItem(itemData);
     } else {
-      const msg = res?.message || 'Failed to upload attachment to Google Drive';
+      const msg = res?.message || res?.error || 'Failed to upload attachment to Google Drive';
       console.error('[PurchasingGasService] ❌ uploadAttachment failed:', msg);
       throw new Error(msg);
     }
