@@ -20,10 +20,10 @@ export const SuppliersPage: React.FC = () => {
         </div>
         <button
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-2 text-base text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          กลับหน้า Portal
+          กลับหน้าระบบจัดซื้อ
         </button>
       </header>
 

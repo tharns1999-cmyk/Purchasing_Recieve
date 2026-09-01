@@ -624,18 +624,19 @@ export const PurchasingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Main Content Area */}
-        <main className="flex-1 min-w-0 p-2 sm:p-4 lg:p-4 w-full transition-all duration-300 flex flex-col min-h-0 overflow-hidden">
-          <PurchasingErrorBoundary>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 480, damping: 26, mass: 0.5 }}
-                className="h-full flex-1 flex flex-col min-h-0"
-              >
+        {/* Main Scrollable Content Area */}
+        <main className="flex-1 min-w-0 p-3 sm:p-5 lg:p-6 w-full transition-all duration-300 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden">
+          <div className="w-full max-w-7xl mx-auto flex-1 flex flex-col min-h-0 pb-16 md:pb-8">
+            <PurchasingErrorBoundary>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 flex flex-col min-h-0 w-full"
+                >
                 {activeTab === 'receiving' && (
                   <RMReceivingModule
                     receivingRecords={receivingRecords}
@@ -699,6 +700,7 @@ export const PurchasingPage: React.FC = () => {
               </motion.div>
             </AnimatePresence>
           </PurchasingErrorBoundary>
+          </div>
 
           {/* Global Issue Log Modal Overlay (Renders on top of receiving tab when isIssueModalOpen is true) */}
           {isIssueModalOpen && activeTab !== 'issuelog' && (
