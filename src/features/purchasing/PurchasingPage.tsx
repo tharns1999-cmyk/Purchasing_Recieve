@@ -624,9 +624,9 @@ export const PurchasingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Main Scrollable Content Area */}
-        <main className="flex-1 min-w-0 p-3 sm:p-5 lg:p-6 w-full transition-all duration-300 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden">
-          <div className="w-full max-w-7xl mx-auto flex-1 flex flex-col min-h-0 pb-16 md:pb-8">
+        {/* Main Scrollable Content Area — 100% Full-Width Fluid */}
+        <main className="flex-1 min-w-0 h-full overflow-y-auto overflow-x-hidden bg-slate-50 p-3 sm:p-5 lg:p-6">
+          <div className="w-full flex-1 flex flex-col min-h-0 space-y-6 pb-20">
             <PurchasingErrorBoundary>
               <AnimatePresence mode="wait">
                 <motion.div

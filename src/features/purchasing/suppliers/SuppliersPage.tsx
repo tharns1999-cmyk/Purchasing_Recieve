@@ -28,7 +28,7 @@ export const SuppliersPage: React.FC = () => {
       </header>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Title */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
