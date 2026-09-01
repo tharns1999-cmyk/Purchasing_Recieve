@@ -280,8 +280,8 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
     return (
       <th
         onClick={() => handleSort(key)}
-        className={`py-3 px-3 text-xs font-semibold select-none cursor-pointer transition-colors duration-150 group hover:bg-slate-200/70 ${
-          isActive ? 'text-emerald-700 bg-emerald-50/50 font-bold' : 'text-slate-700'
+        className={`whitespace-nowrap px-4 py-3.5 text-xs font-semibold select-none cursor-pointer transition-colors duration-150 group hover:bg-slate-100/80 ${
+          isActive ? 'text-emerald-700 bg-emerald-50/60 font-bold' : 'text-slate-600'
         } ${
           align === 'right'
             ? 'text-right'
@@ -506,7 +506,7 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
                 <h2 className="text-base font-bold text-slate-900 leading-tight">
                   บันทึกรับเข้าวัตถุดิบ (RM Receiving)
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                   {receivingRecords.length} รายการ
                 </span>
               </div>
@@ -526,7 +526,7 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ค้นหา Bill No, Supplier, RM..."
-                className="w-full h-9 pl-9 pr-8 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all placeholder:text-slate-400"
+                className="w-full h-9 pl-9 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all placeholder:text-slate-400"
               />
               {searchQuery && (
                 <button
@@ -540,12 +540,12 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
               )}
             </div>
 
-            {/* Status Filter Segmented Control */}
-            <div className="flex items-center p-0.5 bg-slate-100/90 rounded-lg border border-slate-200 text-xs font-medium self-start sm:self-auto">
+            {/* Status Filter Segmented Pill Tabs */}
+            <div className="flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200 text-xs font-medium self-start sm:self-auto gap-0.5">
               <button
                 type="button"
                 onClick={() => setStatusFilter('ALL')}
-                className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap text-xs font-medium ${
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-xs ${
                   statusFilter === 'ALL'
                     ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -556,24 +556,26 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
               <button
                 type="button"
                 onClick={() => setStatusFilter('PASS')}
-                className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap text-xs font-medium ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-xs ${
                   statusFilter === 'PASS'
-                    ? 'bg-emerald-600 text-white shadow-2xs font-semibold'
-                    : 'text-emerald-700 hover:bg-white/60'
+                    ? 'bg-white text-emerald-800 shadow-2xs font-semibold border border-emerald-200/80'
+                    : 'text-emerald-700 hover:bg-emerald-50/80'
                 }`}
               >
-                PASS ({statusCounts.pass})
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span>ผ่าน (PASS) ({statusCounts.pass})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter('FAIL')}
-                className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap text-xs font-medium ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-xs ${
                   statusFilter === 'FAIL'
-                    ? 'bg-rose-600 text-white shadow-2xs font-semibold'
-                    : 'text-rose-700 hover:bg-white/60'
+                    ? 'bg-white text-rose-800 shadow-2xs font-semibold border border-rose-200/80'
+                    : 'text-rose-700 hover:bg-rose-50/80'
                 }`}
               >
-                FAIL ({statusCounts.fail})
+                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                <span>ไม่ผ่าน (FAIL) ({statusCounts.fail})</span>
               </button>
             </div>
 
@@ -581,10 +583,10 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
-              className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] text-white text-xs font-medium rounded-xl shadow-sm hover:shadow transition-all whitespace-nowrap cursor-pointer"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>+ บันทึกรับเข้าใหม่ (New RM Bill)</span>
+              <Plus className="w-4 h-4" />
+              <span>บันทึกรับเข้าใหม่</span>
             </button>
           </div>
         </div>
@@ -592,35 +594,29 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
         {/* History Data Table */}
         <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar relative">
           <table className="w-full text-left border-collapse text-xs">
-            <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-2xs">
-              <tr className="text-slate-700 uppercase text-[11px] tracking-wider font-semibold">
-                {renderSortHeader('วันที่รับ', 'receiveDate')}
-                {renderSortHeader('Bill No', 'billNo')}
-                {renderSortHeader('Supplier', 'supplierName')}
-                {renderSortHeader('วัตถุดิบ (RM)', 'rmName')}
-                {renderSortHeader('รับเข้า', 'receiveQty', 'right')}
-                {renderSortHeader('ราคา/หน่วย', 'unitPrice', 'right')}
-                {renderSortHeader('มูลค่ารวม', 'totalAmount', 'right')}
-                {renderSortHeader('สุ่มตรวจ', 'sampleQty', 'right')}
-                {renderSortHeader('Defect', 'defectQty', 'right')}
-                {renderSortHeader('% Defect', 'defectPercent', 'right')}
-                {renderSortHeader('ผลประเมิน', 'isPass', 'center')}
+            <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs border-b border-slate-200 shadow-2xs">
+              <tr className="text-slate-600 uppercase text-[11px] tracking-wider font-semibold">
+                {renderSortHeader('บิล & วันที่', 'billNo')}
+                {renderSortHeader('ผู้ส่งมอบ & วัตถุดิบ', 'supplierName')}
+                {renderSortHeader('ปริมาณ & มูลค่ารวม', 'receiveQty', 'right')}
+                {renderSortHeader('การสุ่มตรวจ QC', 'sampleQty', 'center')}
+                {renderSortHeader('ผลตรวจ QC', 'isPass', 'center')}
                 {renderSortHeader('หลังผลิต', 'postProductionDefectQty', 'center')}
-                <th className="py-3 px-3 text-center w-28 text-slate-700 font-semibold">
-                  จัดการ
+                <th className="whitespace-nowrap px-4 py-3.5 text-right w-36 text-slate-600 font-semibold">
+                  รูปแนบ & จัดการ
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-normal text-slate-700 bg-white">
               {sortedHistory.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="py-16 text-center text-slate-400">
+                  <td colSpan={7} className="py-16 text-center text-slate-400">
                     <Filter className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm font-semibold text-slate-700">ไม่พบข้อมูลการรับเข้าวัตถุดิบ</p>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                       {searchQuery || statusFilter !== 'ALL'
                         ? 'ลองปรับเปลี่ยนคำค้นหาหรือตัวกรองสถานะ QC เพื่อดูรายการอื่น'
-                        : 'กดปุ่ม "+ บันทึกรับเข้าใหม่" ด้านบนเพื่อเริ่มบันทึกบิลรับเข้าแรก'}
+                        : 'กดปุ่ม "บันทึกรับเข้าใหม่" ด้านบนเพื่อเริ่มบันทึกบิลรับเข้าแรก'}
                     </p>
                   </td>
                 </tr>
@@ -628,104 +624,102 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
                 paginatedHistory.map((rec) => (
                   <tr
                     key={rec.id}
-                    className="hover:bg-slate-50/90 transition-colors border-b border-slate-100 text-xs group"
+                    className="hover:bg-slate-50/70 transition-colors border-b border-slate-100 text-xs group"
                   >
-                    {/* Date */}
-                    <td className="py-3 px-3 whitespace-nowrap text-slate-600 font-mono">
-                      {rec.receiveDate ? rec.receiveDate.split('T')[0] : '-'}
-                    </td>
-
-                    {/* Bill No */}
-                    <td className="py-3 px-3 whitespace-nowrap font-semibold text-slate-900 font-mono">
-                      {rec.billNo}
-                    </td>
-
-                    {/* Supplier */}
-                    <td className="py-3 px-3 whitespace-nowrap text-slate-800 font-medium">
-                      {rec.supplierName}
-                    </td>
-
-                    {/* RM Name & Category */}
-                    <td className="py-3 px-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-slate-900">{rec.rmName}</span>
-                        <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                          {rec.rmCategory}
+                    {/* 1. Bill & Date */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-900 font-mono text-xs">
+                          #{rec.billNo}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          {rec.receiveDate ? rec.receiveDate.split('T')[0] : '-'}
                         </span>
                       </div>
                     </td>
 
-                    {/* Receive Qty */}
-                    <td className="py-3 px-3 whitespace-nowrap text-right font-semibold text-slate-900 font-mono">
-                      {rec.receiveQty.toLocaleString()} kg
+                    {/* 2. Supplier & RM */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-slate-800 text-xs truncate max-w-[200px]" title={rec.supplierName}>
+                          {rec.supplierName}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="font-semibold text-slate-900">{rec.rmName}</span>
+                          <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-md border border-slate-200">
+                            {rec.rmCategory}
+                          </span>
+                        </div>
+                      </div>
                     </td>
 
-                    {/* Unit Price */}
-                    <td className="py-3 px-3 whitespace-nowrap text-right text-slate-600 font-mono">
-                      {rec.unitPrice !== undefined ? `${rec.unitPrice.toLocaleString()} ฿` : '-'}
+                    {/* 3. Receive Qty & Total Value */}
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <div className="flex flex-col items-end">
+                        <span className="font-bold text-slate-800 font-mono text-xs">
+                          {rec.receiveQty.toLocaleString()} <span className="text-[11px] font-normal text-slate-500">kg</span>
+                        </span>
+                        <span className="text-emerald-600 font-semibold font-mono text-xs mt-0.5">
+                          {rec.unitPrice !== undefined ? `${(rec.receiveQty * rec.unitPrice).toLocaleString()} ฿` : <span className="text-slate-300 font-normal">-</span>}
+                        </span>
+                      </div>
                     </td>
 
-                    {/* Total Amount */}
-                    <td className="py-3 px-3 whitespace-nowrap text-right font-bold text-emerald-700 font-mono">
-                      {rec.unitPrice !== undefined
-                        ? `${(rec.receiveQty * rec.unitPrice).toLocaleString()} ฿`
-                        : '-'}
+                    {/* 4. Sampling & Defect */}
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="font-mono text-xs text-slate-700">
+                          <span>{rec.sampleQty}</span>
+                          <span className="text-slate-400 mx-1">/</span>
+                          <span className={rec.defectQty > 0 ? 'text-rose-600 font-bold' : 'text-slate-500'}>
+                            {rec.defectQty} kg
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-mono mt-0.5">
+                          <span className={rec.defectPercent > 0 ? 'text-rose-600 font-bold' : 'text-slate-400'}>
+                            {rec.defectPercent}% Defect
+                          </span>
+                        </div>
+                      </div>
                     </td>
 
-                    {/* Sample Qty */}
-                    <td className="py-3 px-3 whitespace-nowrap text-right text-sky-700 font-mono">
-                      {rec.sampleQty} kg
-                    </td>
-
-                    {/* Defect Qty */}
-                    <td className="py-3 px-3 whitespace-nowrap text-right font-mono text-rose-600">
-                      {rec.defectQty} kg
-                    </td>
-
-                    {/* Defect % */}
-                    <td className="py-3 px-3 whitespace-nowrap text-right font-mono font-medium">
-                      {rec.defectPercent}%
-                    </td>
-
-                    {/* QC Status */}
-                    <td className="py-3 px-3 whitespace-nowrap text-center">
+                    {/* 5. QC Pass/Fail Status */}
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
                       {rec.isPass ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          PASS
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                          ✓ ผ่านเกณฑ์
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold">
-                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                          FAIL
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+                          ✕ ไม่ผ่าน
                         </span>
                       )}
                     </td>
 
-                    {/* Post-Production Defect */}
-                    <td className="py-3 px-3 whitespace-nowrap text-center">
+                    {/* 6. Post-Production Defect */}
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
                       {rec.postProductionDefectQty !== undefined ? (
-                        <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                        <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
                           {rec.postProductionDefectQty} kg
                         </span>
                       ) : (
-                        <span className="text-[11px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
                           รอบันทึก
                         </span>
                       )}
                     </td>
 
-                    {/* Actions Toolbar */}
-                    <td className="py-3 px-3 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-end gap-1">
-                        {/* Attachments */}
+                    {/* 7. Attachments & Actions */}
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* Attachments Photo Button */}
                         <button
                           type="button"
                           onClick={() => handleOpenAttachments(rec)}
-                          className={`relative inline-flex items-center justify-center p-1.5 rounded-md transition-colors cursor-pointer ${
+                          className={`relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                             rec.attachments && rec.attachments.length > 0
-                              ? 'bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200'
-                              : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                              ? 'bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 shadow-2xs'
+                              : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200/60'
                           }`}
                           title={
                             rec.attachments && rec.attachments.length > 0
@@ -734,38 +728,36 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
                           }
                         >
                           <ImageIcon className="w-3.5 h-3.5" />
-                          {rec.attachments && rec.attachments.length > 0 && (
-                            <span className="absolute -top-1 -right-1 min-w-[13px] h-[13px] px-0.5 rounded-full bg-sky-600 text-white text-[8px] font-bold flex items-center justify-center border border-white">
-                              {rec.attachments.length}
-                            </span>
-                          )}
+                          <span className={rec.attachments && rec.attachments.length > 0 ? 'font-bold' : 'text-slate-400'}>
+                            {rec.attachments ? rec.attachments.length : 0}
+                          </span>
                         </button>
 
                         {/* Post-Production Defect */}
                         <button
                           type="button"
                           onClick={() => handleOpenPostProd(rec)}
-                          className="inline-flex items-center justify-center p-1.5 rounded-md text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
                           title="บันทึกของเสียหลังการผลิต"
                         >
                           <Factory className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Edit History */}
+                        {/* Edit */}
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(rec)}
-                          className="inline-flex items-center justify-center p-1.5 rounded-md text-slate-400 hover:text-sky-700 hover:bg-sky-50 transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-sky-700 hover:bg-sky-50 border border-transparent hover:border-sky-200 transition-all cursor-pointer"
                           title="แก้ไขรายการ"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Delete History */}
+                        {/* Delete */}
                         <button
                           type="button"
                           onClick={() => handleOpenDelete(rec)}
-                          className="inline-flex items-center justify-center p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
                           title="ลบรายการ"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -788,18 +780,18 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
                                   problemQty: rec.defectQty > 0 ? rec.defectQty : rec.receiveQty,
                                 })
                               }
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-medium transition-all shadow-2xs cursor-pointer ml-1"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer ml-0.5"
                               title="เปิดบันทึกปัญหาวัตถุดิบ (Issue Log)"
                             >
-                              <AlertTriangle className="w-3 h-3" />
+                              <AlertTriangle className="w-3.5 h-3.5" />
                               <span>Issue Log</span>
                             </button>
                           ) : (
                             <span
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium ml-1"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-medium ml-0.5"
                               title="มี Issue Log ในระบบแล้ว"
                             >
-                              <CheckCircle2 className="w-3 h-3 text-amber-500" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" />
                               <span>มี Log</span>
                             </span>
                           )

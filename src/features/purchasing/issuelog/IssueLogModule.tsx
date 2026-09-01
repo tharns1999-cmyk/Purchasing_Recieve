@@ -7,12 +7,13 @@ import {
   AlertCircle,
   ShieldAlert,
   X,
-  Eye,
   Trash2,
   Building2,
   Layers,
   FileText,
   Calendar,
+  Plus,
+  Pencil,
 } from 'lucide-react';
 import { TablePagination } from '@/components/ui/TablePagination';
 import { AutocompleteSelect, SelectOption } from '@/components/ui/AutocompleteSelect';
@@ -280,165 +281,217 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
     return filteredRecords.slice(start, start + pageSize);
   }, [filteredRecords, currentPage, pageSize]);
 
+  // KPI Summary Counts
+  const openCount = useMemo(
+    () => (issueLogRecords || []).filter((r) => r.status === 'Open').length,
+    [issueLogRecords]
+  );
+  const inProgressCount = useMemo(
+    () => (issueLogRecords || []).filter((r) => r.status === 'In Progress').length,
+    [issueLogRecords]
+  );
+  const pendingCount = openCount + inProgressCount;
+  const resolvedCount = useMemo(
+    () => (issueLogRecords || []).filter((r) => r.status === 'Resolved').length,
+    [issueLogRecords]
+  );
+
   if (onlyModal && !isModalOpen) return null;
 
   return (
     <div className={onlyModal ? '' : 'h-full flex-1 flex flex-col min-h-0 space-y-3'}>
       {!onlyModal && (
         <>
-          {/* Top Header Card: Stat Badges + Add Issue Button */}
-          <div className="bg-white rounded-xl border border-slate-200/80 p-3 sm:px-4 sm:py-3 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shrink-0">
-            {/* Stat Badges */}
-            <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar">
-              <div className="flex items-center gap-2.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/70 shrink-0">
-                <AlertOctagon className="w-4 h-4 text-slate-500" />
-                <span className="text-xs text-slate-600 font-medium">ปัญหาทั้งหมด</span>
-                <span className="px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-800 text-xs font-mono font-semibold">
-                  {issueLogRecords.length}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2.5 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200/80 shrink-0">
-                <AlertTriangle className="w-4 h-4 text-rose-600" />
-                <span className="text-xs text-rose-800 font-medium">รอดำเนินการ</span>
-                <span className="px-2 py-0.5 rounded-full bg-rose-200/80 text-rose-900 text-xs font-mono font-bold">
-                  {issueLogRecords.filter(r => r.status === 'Open' || r.status === 'In Progress').length}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2.5 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/80 shrink-0">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs text-emerald-800 font-medium">แก้ไขเรียบร้อย</span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 text-xs font-mono font-bold">
-                  {issueLogRecords.filter(r => r.status === 'Resolved').length}
-                </span>
+          {/* Top Header Section: Clean 3-Column KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
+            {/* 1. All Issues */}
+            <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 shadow-2xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+                  <AlertOctagon className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 font-medium block">ปัญหาทั้งหมด</span>
+                  <span className="text-lg font-bold text-slate-900 font-mono leading-tight">
+                    {issueLogRecords.length} <span className="text-xs font-normal text-slate-400">เคส</span>
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Action Button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenManualModal) {
-                  onOpenManualModal();
-                }
-              }}
-              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-medium text-xs rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap"
-            >
-              <span className="text-xs">➕</span>
-              <span>บันทึกเคสปัญหาใหม่</span>
-            </button>
+            {/* 2. Pending / In Progress */}
+            <div className="bg-white rounded-xl border border-amber-200/80 p-3.5 shadow-2xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 relative shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                  <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-amber-800 font-medium block">รอดำเนินการ / กำลังแก้ไข</span>
+                  <span className="text-lg font-bold text-amber-900 font-mono leading-tight">
+                    {pendingCount} <span className="text-xs font-normal text-amber-600/80">เคส</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Resolved */}
+            <div className="bg-white rounded-xl border border-emerald-200/80 p-3.5 shadow-2xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs text-emerald-800 font-medium block">แก้ไขเรียบร้อยแล้ว</span>
+                  <span className="text-lg font-bold text-emerald-900 font-mono leading-tight">
+                    {resolvedCount} <span className="text-xs font-normal text-emerald-600/80">เคส</span>
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Main Issue Log Table Card */}
           <div className="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
             {/* Table Controls Header */}
-            <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-100 bg-white flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shrink-0">
+            <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-200/80 bg-white flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
+                <div className="p-2 bg-rose-50 text-rose-600 rounded-xl border border-rose-100">
                   <AlertOctagon className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    รายการติดตามปัญหาคุณภาพ (QC Issue Log)
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-slate-900 leading-tight">
+                      รายการติดตามปัญหาคุณภาพ (QC Issue Log)
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                      {filteredRecords.length} / {issueLogRecords.length} เคส
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
                     บันทึกและติดตามเคสข้อร้องเรียนคุณภาพวัตถุดิบ
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 {/* Search */}
-                <div className="relative flex-1 sm:w-64">
+                <div className="relative w-full sm:w-56 lg:w-64">
                   <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="ค้นหา Bill No, Supplier, ปัญหา..."
-                    className="w-full h-9 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all placeholder:text-slate-400"
+                    className="w-full h-9 pl-9 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all placeholder:text-slate-400"
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
                       className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      title="ล้างคำค้นหา"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
 
-                {/* Status Filter */}
-                <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 overflow-x-auto custom-scrollbar text-xs font-medium">
+                {/* Status Filter Segmented Pill Control */}
+                <div className="flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200 text-xs font-medium self-start sm:self-auto gap-0.5">
                   <button
                     type="button"
                     onClick={() => setStatusFilter('ALL')}
-                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'ALL'
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-xs ${
+                      statusFilter === 'ALL'
                         ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                         : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    }`}
                   >
                     ทั้งหมด ({issueLogRecords.length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setStatusFilter('Open')}
-                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'Open'
-                        ? 'bg-rose-600 text-white shadow-2xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-xs ${
+                      statusFilter === 'Open'
+                        ? 'bg-white text-rose-800 shadow-2xs font-semibold border border-rose-200/80'
+                        : 'text-rose-700 hover:bg-rose-50/80'
+                    }`}
                   >
-                    รอดำเนินการ
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                    <span>รอดำเนินการ ({openCount})</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setStatusFilter('In Progress')}
-                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'In Progress'
-                        ? 'bg-amber-600 text-white shadow-2xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-xs ${
+                      statusFilter === 'In Progress'
+                        ? 'bg-white text-blue-800 shadow-2xs font-semibold border border-blue-200/80'
+                        : 'text-blue-700 hover:bg-blue-50/80'
+                    }`}
                   >
-                    กำลังแก้ไข
+                    <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                    <span>กำลังแก้ไข ({inProgressCount})</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setStatusFilter('Resolved')}
-                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'Resolved'
-                        ? 'bg-emerald-600 text-white shadow-2xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-xs ${
+                      statusFilter === 'Resolved'
+                        ? 'bg-white text-emerald-800 shadow-2xs font-semibold border border-emerald-200/80'
+                        : 'text-emerald-700 hover:bg-emerald-50/80'
+                    }`}
                   >
-                    แก้ไขแล้ว
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span>แก้ไขแล้ว ({resolvedCount})</span>
                   </button>
                 </div>
+
+                {/* Primary Action Button: Add Issue */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onOpenManualModal) {
+                      onOpenManualModal();
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 active:scale-[0.98] text-white text-xs font-medium rounded-xl shadow-sm hover:shadow transition-all whitespace-nowrap cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>บันทึกเคสปัญหาใหม่</span>
+                </button>
               </div>
             </div>
 
             {/* Table Content with Scrollbar */}
             <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar relative">
               <table className="w-full text-left border-collapse text-xs">
-                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-2xs">
-                  <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                    <th className="py-3 px-4 w-28">วันที่พบ</th>
-                    <th className="py-3 px-4 w-32">Bill No</th>
-                    <th className="py-3 px-4">Supplier</th>
-                    <th className="py-3 px-4">วัตถุดิบ (RM)</th>
-                    <th className="py-3 px-4 text-right">ปริมาณมีปัญหา</th>
-                    <th className="py-3 px-4">รายละเอียดปัญหา</th>
-                    <th className="py-3 px-4">มาตรการแก้ไข</th>
-                    <th className="py-3 px-4 text-center w-32">สถานะ</th>
-                    <th className="py-3 px-4 text-center w-20">จัดการ</th>
+                <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs border-b border-slate-200 shadow-2xs">
+                  <tr className="text-slate-600 uppercase text-[11px] tracking-wider font-semibold">
+                    <th className="whitespace-nowrap px-4 py-3.5 w-32">วันที่พบ & บิล</th>
+                    <th className="whitespace-nowrap px-4 py-3.5">ผู้ส่งมอบ & วัตถุดิบ</th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-center w-28">ปริมาณมีปัญหา</th>
+                    <th className="whitespace-nowrap px-4 py-3.5">รายละเอียดปัญหา</th>
+                    <th className="whitespace-nowrap px-4 py-3.5">มาตรการแก้ไข (Action Plan)</th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-center w-36">สถานะการแก้ไข</th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-right w-24">การจัดการ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-sm font-normal text-slate-800">
+                <tbody className="divide-y divide-slate-100 font-normal text-slate-700 bg-white">
                   {filteredRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-slate-400">
+                      <td colSpan={7} className="py-16 text-center text-slate-400">
                         <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500 opacity-40" />
-                        <p className="font-normal text-slate-500">ไม่พบเคสปัญหาคุณภาพวัตถุดิบ</p>
-                        <p className="text-sm mt-0.5">ระบบยังไม่มีประวัติ QC Issue Log ในขณะนี้</p>
+                        <p className="font-semibold text-slate-700">ไม่พบเคสปัญหาคุณภาพวัตถุดิบ</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {searchQuery || statusFilter !== 'ALL'
+                            ? 'ลองปรับเปลี่ยนคำค้นหาหรือตัวกรองสถานะเพื่อดูรายการอื่น'
+                            : 'ระบบยังไม่มีประวัติ QC Issue Log ในขณะนี้'}
+                        </p>
                       </td>
                     </tr>
                   ) : (
@@ -446,35 +499,64 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                       <tr
                         key={rec.id}
                         onClick={() => handleOpenDetailModal(rec)}
-                        className="hover:bg-slate-100/80 transition-colors cursor-pointer"
+                        className="hover:bg-slate-50/70 transition-colors cursor-pointer border-b border-slate-100 text-xs group"
                       >
-                        <td className="py-3 px-4 whitespace-nowrap text-slate-600 font-mono">
-                          {rec.issueDate ? rec.issueDate.split('T')[0] : '-'}
+                        {/* 1. Date & Bill No */}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-slate-800 font-mono text-xs">
+                              {rec.issueDate ? rec.issueDate.split('T')[0] : '-'}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono mt-0.5">
+                              Bill: #{rec.billNo}
+                            </span>
+                          </div>
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap font-normal text-slate-900 font-mono">
-                          {rec.billNo}
+
+                        {/* 2. Supplier & RM */}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-900 text-xs truncate max-w-[180px]" title={rec.supplierName}>
+                              {rec.supplierName}
+                            </span>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="font-semibold text-slate-900">{rec.rmName}</span>
+                              <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-md border border-slate-200">
+                                RM
+                              </span>
+                            </div>
+                          </div>
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap font-normal text-slate-800">
-                          {rec.supplierName}
+
+                        {/* 3. Problem Quantity */}
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <span className="inline-flex items-center justify-center font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 font-mono text-xs">
+                            {rec.problemQty.toLocaleString()} kg
+                          </span>
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap font-normal text-slate-900">
-                          {rec.rmName}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap text-right font-normal text-rose-700">
-                          {rec.problemQty.toLocaleString()} kg
-                        </td>
-                        <td className="py-3 px-4 max-w-xs">
-                          <span className="inline-block text-sm font-normal px-2 py-0.5 rounded bg-rose-100 text-rose-800 mb-1 border border-rose-200">
+
+                        {/* 4. Problem Details */}
+                        <td className="px-4 py-3 max-w-xs">
+                          <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/80 mb-1">
                             {rec.defectCategory || DEFECT_CATEGORIES[0]}
                           </span>
-                          <p className="text-slate-800 font-normal line-clamp-2">
+                          <p className="text-slate-800 text-xs line-clamp-2 leading-relaxed">
                             {rec.problemsFound}
                           </p>
                         </td>
-                        <td className="py-3 px-4 max-w-xs text-slate-600">
-                          <p className="line-clamp-2">{rec.correctiveAction || '-'}</p>
+
+                        {/* 5. Action Plan */}
+                        <td className="px-4 py-3 max-w-xs text-slate-600">
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-slate-400 mt-0.5 shrink-0">↳</span>
+                            <p className="line-clamp-2 leading-relaxed text-xs">
+                              {rec.correctiveAction || '-'}
+                            </p>
+                          </div>
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+
+                        {/* 6. Status Dropdown */}
+                        <td className="px-4 py-3 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
                           <select
                             value={rec.status}
                             onChange={(e) =>
@@ -483,23 +565,25 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                                 e.target.value as 'Open' | 'In Progress' | 'Resolved'
                               )
                             }
-                            className={`text-sm font-normal px-2.5 py-1 rounded-full border focus:outline-none cursor-pointer ${rec.status === 'Open'
-                                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            className={`text-xs font-semibold px-2.5 py-1 rounded-lg border focus:outline-none cursor-pointer shadow-2xs transition-all ${
+                              rec.status === 'Open'
+                                ? 'bg-amber-50 text-amber-800 border-amber-300 focus:ring-2 focus:ring-amber-500/20'
                                 : rec.status === 'In Progress'
-                                  ? 'bg-amber-100 text-amber-800 border-amber-300'
-                                  : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                              }`}
+                                ? 'bg-blue-50 text-blue-800 border-blue-300 focus:ring-2 focus:ring-blue-500/20'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-300 focus:ring-2 focus:ring-emerald-500/20'
+                            }`}
                           >
-                            <option value="Open">🔴 Open (รอดำเนินการ)</option>
-                            <option value="In Progress">🟡 In Progress (กำลังแก้ไข)</option>
+                            <option value="Open">🟡 Open (รอดำเนินการ)</option>
+                            <option value="In Progress">🔵 In Progress (กำลังแก้ไข)</option>
                             <option value="Resolved">🟢 Resolved (แก้ไขแล้ว)</option>
                           </select>
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap text-center">
-                          <div className="flex items-center justify-center gap-2">
+
+                        {/* 7. Actions */}
+                        <td className="px-4 py-3 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1">
                             {confirmDeleteId === rec.id ? (
-                              <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-right-2 duration-200">
-                                <span className="text-sm font-normal text-rose-600 mr-1">แน่ใจหรือไม่?</span>
+                              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-2 duration-200">
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -509,9 +593,9 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                                     }
                                     setConfirmDeleteId(null);
                                   }}
-                                  className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-sm font-normal shadow-sm transition-colors"
+                                  className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium shadow-2xs transition-colors cursor-pointer"
                                 >
-                                  ยืนยันลบ
+                                  ลบ
                                 </button>
                                 <button
                                   type="button"
@@ -519,7 +603,7 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                                     e.stopPropagation();
                                     setConfirmDeleteId(null);
                                   }}
-                                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md text-sm font-normal transition-colors"
+                                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                                 >
                                   ยกเลิก
                                 </button>
@@ -532,11 +616,10 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                                     e.stopPropagation();
                                     handleOpenDetailModal(rec);
                                   }}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-sm font-normal transition-all shadow-2xs cursor-pointer"
+                                  className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-sky-700 hover:bg-sky-50 border border-transparent hover:border-sky-200 transition-all cursor-pointer"
                                   title="ดูและแก้ไขรายละเอียดเคส"
                                 >
-                                  <Eye className="w-3.5 h-3.5 text-rose-600" />
-                                  ดู/แก้ไขข้อมูล
+                                  <Pencil className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   type="button"
@@ -544,13 +627,10 @@ export const IssueLogModule: React.FC<IssueLogModuleProps> = ({
                                     e.stopPropagation();
                                     setConfirmDeleteId(rec.id);
                                   }}
-                                  className={
-                                    "inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors " +
-                                    "text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                                  }
+                                  className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
                                   title="ลบข้อมูล"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </>
                             )}
