@@ -8,13 +8,8 @@ import {
   ReceivingAttachmentItem,
   normalizeAttachmentItem,
   formatPhoneNumber,
-  MOCK_SUPPLIERS,
-  MOCK_RM_ITEMS,
 } from './DefectMatrixService';
 import { AuditService } from './AuditService';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const google: any;
 
 const LOCAL_STORAGE_PURCHASING_KEY = 'purchasing_system_db_v1';
 
@@ -28,125 +23,200 @@ export interface PurchasingDbData {
 }
 
 export class PurchasingGasService {
-  private static get isGoogleAvailable(): boolean {
-    try {
-      return typeof google !== 'undefined' && typeof google.script !== 'undefined' && typeof google.script.run !== 'undefined';
-    } catch {
-      return false;
+  /**
+   * Resolve Google Apps Script Web App Endpoint URL from localStorage override or Vite environment variable
+   */
+  public static get gasApiUrl(): string {
+    const customUrl = (typeof window !== 'undefined' ? localStorage.getItem('GAS_API_URL') : null) || '';
+    if (customUrl.trim()) return customUrl.trim();
+    return (import.meta.env.VITE_GAS_API_URL || '').trim();
+  }
+
+  public static get isGasApiAvailable(): boolean {
+    return Boolean(this.gasApiUrl);
+  }
+
+  public static setCustomGasUrl(url: string): void {
+    if (typeof window !== 'undefined') {
+      if (url.trim()) {
+        localStorage.setItem('GAS_API_URL', url.trim());
+      } else {
+        localStorage.removeItem('GAS_API_URL');
+      }
     }
   }
 
   /**
-   * Load all purchasing data (from GAS Google Sheet if available, else LocalStorage)
+   * Generic HTTP fetch client for GAS Backend REST API (Always forces real backend connection)
+   */
+  private static async callGasApi<T>(
+    action: string,
+    payload: Record<string, unknown> = {},
+    timeoutMs = 30000
+  ): Promise<T> {
+    const url = this.gasApiUrl;
+    console.log('Connecting to GAS URL:', url || '(NOT CONFIGURED)');
+
+    if (!url) {
+      const errMsg = 'VITE_GAS_API_URL is not configured. Please check your .env file or set GAS_API_URL.';
+      console.error('[PurchasingGasService] ❌ Error:', errMsg);
+      throw new Error(errMsg);
+    }
+
+    console.log(`[PurchasingGasService] 🚀 Sending API Request [${action}] to:`, url);
+
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const requestBody = JSON.stringify({
+        action,
+        payload,
+        ...payload,
+      });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: requestBody,
+        redirect: 'follow',
+      });
+
+      if (!response.ok) {
+        throw new Error(`GAS API HTTP Error ${response.status}: ${response.statusText}`);
+      }
+
+      const text = await response.text();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error('[PurchasingGasService] ❌ Invalid JSON Response from GAS:', text);
+        if (text.includes('<!DOCTYPE') || text.includes('<html') || text.includes('ServiceLogin')) {
+          throw new Error(
+            'Google Apps Script ส่งกลับหน้า HTML Login แทน JSON — โปรดตรวจสอบว่าได้ตั้งค่า Web App ใน Google Apps Script เป็น "Who has access: Anyone" (ทุกคน) แล้วหรือยัง'
+          );
+        }
+        throw new Error(`GAS API returned invalid JSON: ${text.slice(0, 120)}`);
+      }
+
+      console.log(`[PurchasingGasService] 📥 Received Response for [${action}]:`, data?.status || 'OK');
+      return data as T;
+    } catch (fetchErr: unknown) {
+      const err = fetchErr as { message?: string; name?: string };
+      if (err?.message?.includes('Failed to fetch') || err?.name === 'TypeError') {
+        const enhancedMsg =
+          'ไม่สามารถเชื่อมต่อ Google Apps Script (ติด CORS / Network Block): โปรดตรวจสอบว่า Deploy Web App ใน Google Apps Script ได้ตั้งค่า "Execute as: Me" และ "Who has access: Anyone" (ทุกคน) เรียบร้อยแล้วหรือไม่';
+        console.error('[PurchasingGasService] ❌ CORS / Network Block:', enhancedMsg);
+        throw new Error(enhancedMsg);
+      }
+      throw fetchErr;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Load all purchasing data strictly from Google Apps Script Google Sheet
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static _lastMeta: any = null;
 
   static async loadPurchasingData(forceRefresh = false): Promise<PurchasingDbData> {
-    if (this.isGoogleAvailable) {
-      console.log('[PurchasingGasService] google.script.run is available — fetching from GAS...', { forceRefresh });
-      return new Promise((resolve) => {
-        const timeoutId = setTimeout(() => {
-          console.warn('[PurchasingGasService] ⏰ GAS fetch TIMED OUT after 10s, falling back to LocalStorage');
-          this._lastMeta = { source: 'localStorage_timeout' };
-          resolve(this.loadFromLocalStorage());
-        }, 10000);
+    console.log('Connecting to GAS URL:', this.gasApiUrl, { forceRefresh });
 
-        google.script.run
-          .withSuccessHandler((response: unknown) => {
-            clearTimeout(timeoutId);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const res = response as { status?: string; _meta?: any; data?: Partial<PurchasingDbData> };
-            
-            console.log('[PurchasingGasService] GAS Response status:', res?.status);
-            if (res?._meta) {
-              console.log('[PurchasingGasService] GAS _meta:', JSON.stringify(res._meta));
-              this._lastMeta = res._meta;
-            }
-
-            if (res && res.status === 'success' && res.data) {
-              const rawSuppliers: Supplier[] = res.data.suppliers || [];
-              const formattedSuppliers = rawSuppliers.map((s) => ({
-                ...s,
-                phone: formatPhoneNumber(s.phone) === '-' ? '' : formatPhoneNumber(s.phone),
-              }));
-
-              const rawReceivingGas: ReceivingRecord[] = res.data.receivingRecords || [];
-              const seenGasIds = new Set<string>();
-              const cleanReceivingGas: ReceivingRecord[] = [];
-              rawReceivingGas.forEach((r) => {
-                if (r && r.id && !seenGasIds.has(r.id)) {
-                  seenGasIds.add(r.id);
-                  let rawList: (string | ReceivingAttachmentItem)[] = [];
-                  if (Array.isArray(r.attachments)) {
-                    rawList = r.attachments;
-                  } else if (typeof r.attachments === 'string' && r.attachments.trim() !== '') {
-                    try {
-                      const parsed = JSON.parse(r.attachments);
-                      if (Array.isArray(parsed)) rawList = parsed;
-                      else if (typeof parsed === 'string' || typeof parsed === 'object') rawList = [parsed];
-                    } catch {
-                      rawList = [];
-                    }
-                  }
-                  cleanReceivingGas.push({
-                    ...r,
-                    attachments: rawList.map(normalizeAttachmentItem),
-                  });
-                }
-              });
-
-              const data: PurchasingDbData = {
-                suppliers: formattedSuppliers,
-                rmItems: res.data.rmItems || [],
-                defectMatrix: (res.data.defectMatrix as Record<string, DefectRule[]>) || {},
-                defectCategories: res.data.defectCategories || [],
-                receivingRecords: cleanReceivingGas,
-                issueLogs: res.data.issueLogs || [],
-              };
-              
-              console.log('[PurchasingGasService] ✅ Data loaded from GAS Google Sheet:',
-                'suppliers=', data.suppliers.length,
-                'rmItems=', data.rmItems.length,
-                'receivingRecords=', data.receivingRecords.length
-              );
-              
-              // Log last 3 RM items for debugging
-              if (data.rmItems.length > 0) {
-                const lastItems = data.rmItems.slice(-3);
-                lastItems.forEach((rm, i) => {
-                  console.log(`[PurchasingGasService] RM[${data.rmItems.length - 3 + i}]:`, 
-                    'id=', rm.id, 'name=', rm.name, 
-                    'category=', JSON.stringify(rm.category), 
-                    'categoryLabel=', JSON.stringify(rm.categoryLabel)
-                  );
-                });
-              }
-
-              this.saveToLocalStorage(data);
-              resolve(data);
-            } else {
-              console.warn('[PurchasingGasService] ❌ Invalid/error response from GAS:', JSON.stringify(response));
-              this._lastMeta = { source: 'localStorage_gas_error', gasResponse: res?.status };
-              resolve(this.loadFromLocalStorage());
-            }
-          })
-          .withFailureHandler((err: unknown) => {
-            clearTimeout(timeoutId);
-            console.error('[PurchasingGasService] ❌ GAS withFailureHandler:', err);
-            this._lastMeta = { source: 'localStorage_gas_failure', error: String(err) };
-            resolve(this.loadFromLocalStorage());
-          })
-          .getPurchasingInitialData(forceRefresh);
-      });
+    if (!this.isGasApiAvailable) {
+      const errorMsg = 'Google Apps Script API URL is missing! Please configure VITE_GAS_API_URL in .env';
+      console.error('[PurchasingGasService] ❌', errorMsg);
+      this._lastMeta = { source: 'error_no_url', error: errorMsg };
+      throw new Error(errorMsg);
     }
 
-    console.log('[PurchasingGasService] google.script.run NOT available — using LocalStorage/Mock data');
-    this._lastMeta = { source: 'localStorage_no_gas' };
-    return this.loadFromLocalStorage();
+    try {
+      const res = await this.callGasApi<{
+        status?: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        _meta?: any;
+        data?: Partial<PurchasingDbData>;
+        message?: string;
+      }>('getPurchasingData', { forceRefresh }, 30000);
+
+      if (res?._meta) {
+        this._lastMeta = res._meta;
+      }
+
+      if (res && res.status === 'success' && res.data) {
+        const rawSuppliers: Supplier[] = res.data.suppliers || [];
+        const formattedSuppliers = rawSuppliers.map((s) => ({
+          ...s,
+          phone: formatPhoneNumber(s.phone) === '-' ? '' : formatPhoneNumber(s.phone),
+        }));
+
+        const rawReceivingGas: ReceivingRecord[] = res.data.receivingRecords || [];
+        const seenGasIds = new Set<string>();
+        const cleanReceivingGas: ReceivingRecord[] = [];
+        rawReceivingGas.forEach((r) => {
+          if (r && r.id && !seenGasIds.has(r.id)) {
+            seenGasIds.add(r.id);
+            let rawList: (string | ReceivingAttachmentItem)[] = [];
+            if (Array.isArray(r.attachments)) {
+              rawList = r.attachments;
+            } else if (
+              typeof (r as any).attachments === 'string' &&
+              ((r as any).attachments as string).trim() !== ''
+            ) {
+              try {
+                const parsed = JSON.parse((r as any).attachments);
+                if (Array.isArray(parsed)) rawList = parsed;
+                else if (typeof parsed === 'string' || typeof parsed === 'object') rawList = [parsed];
+              } catch {
+                rawList = [];
+              }
+            }
+            cleanReceivingGas.push({
+              ...r,
+              attachments: rawList.map(normalizeAttachmentItem),
+            });
+          }
+        });
+
+        const data: PurchasingDbData = {
+          suppliers: formattedSuppliers,
+          rmItems: res.data.rmItems || [],
+          defectMatrix: (res.data.defectMatrix as Record<string, DefectRule[]>) || {},
+          defectCategories: res.data.defectCategories || [],
+          receivingRecords: cleanReceivingGas,
+          issueLogs: res.data.issueLogs || [],
+        };
+
+        console.log(
+          '[PurchasingGasService] ✅ Real data loaded successfully from GAS Google Sheet:',
+          'suppliers=', data.suppliers.length,
+          'rmItems=', data.rmItems.length,
+          'receivingRecords=', data.receivingRecords.length,
+          'issueLogs=', data.issueLogs.length
+        );
+
+        // Cache real data only
+        this.saveToLocalStorage(data);
+        return data;
+      } else {
+        const errMsg = res?.message || 'Server returned non-success status';
+        console.error('[PurchasingGasService] ❌ GAS API returned error status:', res);
+        this._lastMeta = { source: 'gas_error', message: errMsg };
+        throw new Error(errMsg);
+      }
+    } catch (err) {
+      console.error('[PurchasingGasService] ❌ Failed to fetch purchasing data from GAS API:', err);
+      this._lastMeta = { source: 'network_error', error: String(err) };
+      throw err;
+    }
   }
 
-  // --- Local Storage Backup Helpers ---
+  // --- Real Data Cache Storage (No Mock Data) ---
 
   static loadFromLocalStorage(): PurchasingDbData {
     try {
@@ -154,7 +224,7 @@ export class PurchasingGasService {
       if (raw) {
         const parsed = JSON.parse(raw);
         const rawSuppliers: Supplier[] = parsed.suppliers || [];
-        const formattedSuppliers = (rawSuppliers.length > 0 ? rawSuppliers : MOCK_SUPPLIERS).map((s) => ({
+        const formattedSuppliers = rawSuppliers.map((s) => ({
           ...s,
           phone: formatPhoneNumber(s.phone) === '-' ? '' : formatPhoneNumber(s.phone),
         }));
@@ -171,11 +241,15 @@ export class PurchasingGasService {
             let rawList: (string | ReceivingAttachmentItem)[] = [];
             if (Array.isArray(r.attachments)) {
               rawList = r.attachments;
-            } else if (typeof r.attachments === 'string' && r.attachments.trim() !== '') {
+            } else if (
+              typeof (r as any).attachments === 'string' &&
+              ((r as any).attachments as string).trim() !== ''
+            ) {
               try {
-                const parsedAttachment = JSON.parse(r.attachments);
+                const parsedAttachment = JSON.parse((r as any).attachments);
                 if (Array.isArray(parsedAttachment)) rawList = parsedAttachment;
-                else if (typeof parsedAttachment === 'string' || typeof parsedAttachment === 'object') rawList = [parsedAttachment];
+                else if (typeof parsedAttachment === 'string' || typeof parsedAttachment === 'object')
+                  rawList = [parsedAttachment];
               } catch {
                 rawList = [];
               }
@@ -189,7 +263,7 @@ export class PurchasingGasService {
 
         return {
           suppliers: formattedSuppliers,
-          rmItems: rawRmItems.length > 0 ? rawRmItems : MOCK_RM_ITEMS,
+          rmItems: rawRmItems,
           defectMatrix: parsed.defectMatrix || {},
           defectCategories: rawDefectCats,
           receivingRecords: cleanReceiving,
@@ -197,11 +271,13 @@ export class PurchasingGasService {
         };
       }
     } catch (e) {
-      console.error('Failed to parse purchasing data from LocalStorage:', e);
+      console.error('Failed to parse cached purchasing data from LocalStorage:', e);
     }
+
+    // Strictly empty lists — NO mock data
     return {
-      suppliers: MOCK_SUPPLIERS,
-      rmItems: MOCK_RM_ITEMS,
+      suppliers: [],
+      rmItems: [],
       defectMatrix: {},
       defectCategories: [],
       receivingRecords: [],
@@ -219,7 +295,7 @@ export class PurchasingGasService {
     }
   }
 
-  // --- Persistence Methods ---
+  // --- Real Persistence Operations via GAS HTTP REST API ---
 
   static async saveSupplier(supplier: Supplier): Promise<void> {
     const current = this.loadFromLocalStorage();
@@ -229,13 +305,8 @@ export class PurchasingGasService {
       : [...current.suppliers, supplier];
     this.saveToLocalStorage({ suppliers: updatedSuppliers });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Supplier saved to GAS'))
-        .withFailureHandler((err: unknown) => console.error('saveSupplierRecord failed:', err))
-        .saveSupplierRecord(supplier, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('saveSupplierRecord', { supplier, clientMeta });
   }
 
   static async deleteSupplier(id: string): Promise<void> {
@@ -243,13 +314,8 @@ export class PurchasingGasService {
     const updatedSuppliers = current.suppliers.filter((s) => s.id !== id);
     this.saveToLocalStorage({ suppliers: updatedSuppliers });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Supplier deleted from GAS'))
-        .withFailureHandler((err: unknown) => console.error('deleteSupplierRecord failed:', err))
-        .deleteSupplierRecord(id, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('deleteSupplierRecord', { id, clientMeta });
   }
 
   static async saveRMItem(rmItem: RMItem): Promise<void> {
@@ -260,13 +326,8 @@ export class PurchasingGasService {
       : [...current.rmItems, rmItem];
     this.saveToLocalStorage({ rmItems: updatedRms });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('RMItem saved to GAS'))
-        .withFailureHandler((err: unknown) => console.error('saveRMRecord failed:', err))
-        .saveRMRecord(rmItem, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('saveRMRecord', { rmItem, clientMeta });
   }
 
   static async deleteRMItem(id: string): Promise<void> {
@@ -274,13 +335,8 @@ export class PurchasingGasService {
     const updatedRms = current.rmItems.filter((r) => r.id !== id);
     this.saveToLocalStorage({ rmItems: updatedRms });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('RMItem deleted from GAS'))
-        .withFailureHandler((err: unknown) => console.error('deleteRMRecord failed:', err))
-        .deleteRMRecord(id, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('deleteRMRecord', { id, clientMeta });
   }
 
   static async mergeRMItems(
@@ -290,7 +346,7 @@ export class PurchasingGasService {
     updatedIssueLogs: IssueLogRecord[]
   ): Promise<void> {
     const current = this.loadFromLocalStorage();
-    
+
     const updatedRmItems = current.rmItems
       .filter((r) => !mergedRmIds.includes(r.id) || r.id === targetRM.id)
       .map((r) => (r.id === targetRM.id ? targetRM : r));
@@ -330,18 +386,13 @@ export class PurchasingGasService {
       : [record, ...current.receivingRecords];
     this.saveToLocalStorage({ receivingRecords: updated });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Receiving record saved to GAS'))
-        .withFailureHandler((err: unknown) => console.error('saveReceivingRecord failed:', err))
-        .saveReceivingRecord(record, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('saveReceivingRecord', { record, clientMeta });
   }
 
   static async saveReceivingRecordsBatch(records: ReceivingRecord[]): Promise<void> {
     if (!records || records.length === 0) return;
-    
+
     const current = this.loadFromLocalStorage();
     const batchMap = new Map<string, ReceivingRecord>();
     records.forEach((r) => batchMap.set(r.id, r));
@@ -355,13 +406,8 @@ export class PurchasingGasService {
 
     this.saveToLocalStorage({ receivingRecords: updated });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Receiving records batch saved to GAS'))
-        .withFailureHandler((err: unknown) => console.error('saveReceivingRecordsBatch failed:', err))
-        .saveReceivingRecordsBatch(records, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('saveReceivingRecordsBatch', { records, clientMeta });
   }
 
   static async deleteReceivingRecord(id: string): Promise<void> {
@@ -369,13 +415,8 @@ export class PurchasingGasService {
     const updated = current.receivingRecords.filter((r) => r.id !== id);
     this.saveToLocalStorage({ receivingRecords: updated });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Receiving record deleted from GAS'))
-        .withFailureHandler((err: unknown) => console.error('deleteReceivingRecord failed:', err))
-        .deleteReceivingRecord(id, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('deleteReceivingRecord', { id, clientMeta });
   }
 
   static async saveIssueLogRecord(record: IssueLogRecord): Promise<void> {
@@ -385,7 +426,6 @@ export class PurchasingGasService {
       ? current.issueLogs.map((i) => (i.id === record.id ? record : i))
       : [record, ...current.issueLogs];
 
-    // If receivingRecordId exists, update receivingRecords.hasIssueLog
     let updatedReceiving = current.receivingRecords;
     if (record.receivingRecordId) {
       updatedReceiving = current.receivingRecords.map((r) =>
@@ -395,18 +435,13 @@ export class PurchasingGasService {
 
     this.saveToLocalStorage({ issueLogs: updatedIssues, receivingRecords: updatedReceiving });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Issue log record saved to GAS'))
-        .withFailureHandler((err: unknown) => console.error('saveIssueLogRecord failed:', err))
-        .saveIssueLogRecord(record, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('saveIssueLogRecord', { record, clientMeta });
   }
 
   static async deleteIssueLogRecord(id: string): Promise<void> {
     const current = this.loadFromLocalStorage();
-    const issueToDelete = current.issueLogs.find(i => i.id === id);
+    const issueToDelete = current.issueLogs.find((i) => i.id === id);
     const updatedIssues = current.issueLogs.filter((i) => i.id !== id);
 
     let updatedReceiving = current.receivingRecords;
@@ -418,25 +453,15 @@ export class PurchasingGasService {
 
     this.saveToLocalStorage({ issueLogs: updatedIssues, receivingRecords: updatedReceiving });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Issue log record deleted from GAS'))
-        .withFailureHandler((err: unknown) => console.error('deleteIssueLogRecord failed:', err))
-        .deleteIssueLogRecord(id, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('deleteIssueLogRecord', { id, clientMeta });
   }
 
   static async saveDefectMatrix(matrix: Record<string, DefectRule[]>): Promise<void> {
     this.saveToLocalStorage({ defectMatrix: matrix });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Defect matrix rules saved to GAS'))
-        .withFailureHandler((err: unknown) => console.error('saveDefectMatrixRules failed:', err))
-        .saveDefectMatrixRules(matrix, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('saveDefectMatrixRules', { matrix, clientMeta });
   }
 
   static async saveDefectCategory(category: DefectCategoryItem): Promise<void> {
@@ -448,13 +473,8 @@ export class PurchasingGasService {
 
     this.saveToLocalStorage({ defectCategories: updatedCats });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Defect category saved to GAS'))
-        .withFailureHandler((err: unknown) => console.error('saveDefectCategory failed:', err))
-        .saveDefectCategory(category, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('saveDefectCategory', { category, clientMeta });
   }
 
   static async deleteDefectCategory(id: string): Promise<void> {
@@ -462,16 +482,11 @@ export class PurchasingGasService {
     const updatedCats = current.defectCategories.filter((c) => c.id !== id);
     this.saveToLocalStorage({ defectCategories: updatedCats });
 
-    if (this.isGoogleAvailable) {
-      const clientMeta = await AuditService.getClientMetadata();
-      google.script.run
-        .withSuccessHandler(() => console.log('Defect category deleted from GAS'))
-        .withFailureHandler((err: unknown) => console.error('deleteDefectCategory failed:', err))
-        .deleteDefectCategory(id, clientMeta);
-    }
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('deleteDefectCategory', { id, clientMeta });
   }
 
-  // --- Attachment / Google Drive Methods ---
+  // --- Attachment / Google Drive Methods via GAS REST API ---
 
   static async uploadAttachment(
     recordId: string,
@@ -479,37 +494,48 @@ export class PurchasingGasService {
     base64Data: string,
     fileName?: string
   ): Promise<ReceivingAttachmentItem> {
-    if (this.isGoogleAvailable) {
-      return new Promise((resolve) => {
-        google.script.run
-          .withSuccessHandler((res: { status: string; data?: ReceivingAttachmentItem; message?: string }) => {
-            if (res && res.status === 'success' && res.data) {
-              console.log('[PurchasingGasService] ✅ File uploaded to Google Drive:', res.data.name, res.data.driveViewUrl);
-              resolve(res.data);
-            } else {
-              console.warn('[PurchasingGasService] uploadReceivingAttachmentToDrive failed, using local base64:', res?.message);
-              resolve(normalizeAttachmentItem(base64Data));
-            }
-          })
-          .withFailureHandler((err: unknown) => {
-            console.error('[PurchasingGasService] uploadReceivingAttachmentToDrive error:', err);
-            resolve(normalizeAttachmentItem(base64Data));
-          })
-          .uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, 'image/jpeg', fileName);
-      });
-    }
+    const res = await this.callGasApi<{
+      status: string;
+      data?: ReceivingAttachmentItem;
+      message?: string;
+    }>(
+      'uploadReceivingAttachmentToDrive',
+      {
+        recordId,
+        billNo,
+        base64Data,
+        mimeType: 'image/jpeg',
+        fileName,
+      },
+      60000
+    );
 
-    // Local dev mode fallback
-    return normalizeAttachmentItem(base64Data);
+    if (res && res.status === 'success' && res.data) {
+      console.log('[PurchasingGasService] ✅ File uploaded to Google Drive:', res.data.name, res.data.driveViewUrl);
+      return normalizeAttachmentItem(res.data);
+    } else {
+      const msg = res?.message || 'Failed to upload attachment to Google Drive';
+      console.error('[PurchasingGasService] ❌ uploadAttachment failed:', msg);
+      throw new Error(msg);
+    }
   }
 
-  static async deleteAttachmentFile(fileId: string): Promise<void> {
+  static async saveReceivingAttachments(
+    recordId: string,
+    attachments: ReceivingAttachmentItem[]
+  ): Promise<void> {
+    const current = this.loadFromLocalStorage();
+    const updatedReceiving = current.receivingRecords.map((r) =>
+      r.id === recordId ? { ...r, attachments } : r
+    );
+    this.saveToLocalStorage({ receivingRecords: updatedReceiving });
+
+    const clientMeta = await AuditService.getClientMetadata();
+    await this.callGasApi('saveReceivingAttachments', { recordId, attachments, clientMeta });
+  }
+
+  static async deleteAttachmentFile(fileId: string, recordId?: string): Promise<void> {
     if (!fileId || fileId.startsWith('att-')) return;
-    if (this.isGoogleAvailable) {
-      google.script.run
-        .withSuccessHandler(() => console.log('[PurchasingGasService] Deleted file from Google Drive:', fileId))
-        .withFailureHandler((err: unknown) => console.error('deleteReceivingAttachmentFromDrive error:', err))
-        .deleteReceivingAttachmentFromDrive(fileId);
-    }
+    await this.callGasApi('deleteReceivingAttachmentFromDrive', { fileId, recordId });
   }
 }

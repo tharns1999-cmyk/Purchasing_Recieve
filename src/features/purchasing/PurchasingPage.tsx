@@ -93,6 +93,8 @@ export const PurchasingPage: React.FC = () => {
 
   const isExpanded = isSidebarPinned || isSidebarHovered;
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Master Dynamic Data States
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -104,9 +106,17 @@ export const PurchasingPage: React.FC = () => {
   const [receivingRecords, setReceivingRecords] = useState<ReceivingRecord[]>([]);
   const [issueLogs, setIssueLogs] = useState<IssueLogRecord[]>([]);
 
-  // Load Purchasing Data from GAS / LocalStorage on mount
-  useEffect(() => {
-    PurchasingGasService.loadPurchasingData().then((data) => {
+  // Load Purchasing Data strictly from GAS API
+  const fetchPurchasingData = async (force = false) => {
+    if (force) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+    setApiError(null);
+
+    try {
+      const data = await PurchasingGasService.loadPurchasingData(force);
       setSuppliers(data.suppliers || []);
       setRmItems(data.rmItems || []);
       if (data.defectMatrix && Object.keys(data.defectMatrix).length > 0) {
@@ -115,26 +125,33 @@ export const PurchasingPage: React.FC = () => {
       setDefectCategories(data.defectCategories || []);
       setReceivingRecords(data.receivingRecords || []);
       setIssueLogs(data.issueLogs || []);
-    });
+      setApiError(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[PurchasingPage] ❌ Error loading data from GAS API:', err);
+      setApiError(msg || 'ไม่สามารถเชื่อมต่อกับ Google Apps Script API ได้');
+      // If error occurs, fallback to cached data in localStorage if any exists
+      const cached = PurchasingGasService.loadFromLocalStorage();
+      if (cached.suppliers.length > 0 || cached.receivingRecords.length > 0) {
+        setSuppliers(cached.suppliers);
+        setRmItems(cached.rmItems);
+        setDefectMatrix(cached.defectMatrix);
+        setDefectCategories(cached.defectCategories);
+        setReceivingRecords(cached.receivingRecords);
+        setIssueLogs(cached.issueLogs);
+      }
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPurchasingData();
   }, []);
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      const data = await PurchasingGasService.loadPurchasingData(true);
-      setSuppliers(data.suppliers || []);
-      setRmItems(data.rmItems || []);
-      if (data.defectMatrix && Object.keys(data.defectMatrix).length > 0) {
-        setDefectMatrix(data.defectMatrix);
-      }
-      setDefectCategories(data.defectCategories || []);
-      setReceivingRecords(data.receivingRecords || []);
-      setIssueLogs(data.issueLogs || []);
-    } catch (err) {
-      console.error('Failed to refresh data', err);
-    } finally {
-      setIsRefreshing(false);
-    }
+    await fetchPurchasingData(true);
   };
 
   const handleSaveDefectCategory = (category: DefectCategoryItem) => {
@@ -306,7 +323,7 @@ export const PurchasingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex relative font-sans antialiased text-slate-800">
+    <div className="h-screen bg-slate-50 flex relative font-sans antialiased text-slate-800 overflow-hidden">
       {/* ------------------------------------------------------------- */}
       {/* HOVERABLE COLLAPSIBLE SIDEBAR NAVIGATION (Desktop) */}
       {/* ------------------------------------------------------------- */}
@@ -519,12 +536,12 @@ export const PurchasingPage: React.FC = () => {
       {/* MAIN CONTENT WRAPPER WITH DYNAMIC PADDING */}
       {/* ------------------------------------------------------------- */}
       <div
-        className={`flex-1 min-w-0 transition-all duration-300 ease-in-out flex flex-col min-h-screen pb-16 md:pb-0 ${
+        className={`flex-1 min-w-0 transition-all duration-300 ease-in-out flex flex-col h-screen overflow-hidden pb-16 md:pb-0 ${
           isExpanded ? 'md:pl-64' : 'md:pl-16'
         }`}
       >
         {/* Clean Glassmorphic Top Header */}
-        <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-3 sticky top-0 z-50 shadow-2xs">
+        <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-3 sticky top-0 z-50 shadow-2xs shrink-0">
           <div className="w-full flex items-center justify-between gap-3">
             {/* Breadcrumbs & Active Title with Icon */}
             <div className="flex items-center gap-2.5 overflow-hidden">
@@ -555,27 +572,72 @@ export const PurchasingPage: React.FC = () => {
 
             {/* Top Right Quick Actions */}
             <div className="flex items-center gap-2.5 shrink-0">
+              {/* API Connection Indicator */}
+              <div
+                className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium ${
+                  apiError
+                    ? 'bg-rose-50 border-rose-200 text-rose-700'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                }`}
+                title={PurchasingGasService.gasApiUrl || 'ไม่ได้กำหนด URL'}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    apiError ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'
+                  }`}
+                />
+                <span>{apiError ? 'GAS API ขัดข้อง' : 'GAS API Online'}</span>
+              </div>
+
               <button
                 type="button"
                 onClick={handleRefresh}
-                disabled={isRefreshing}
+                disabled={isRefreshing || isLoading}
                 aria-label="รีเฟรชข้อมูล"
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
-                  isRefreshing 
-                    ? 'bg-sky-50 text-sky-500 border-sky-200 cursor-not-allowed' 
+                  isRefreshing || isLoading
+                    ? 'bg-sky-50 text-sky-500 border-sky-200 cursor-not-allowed'
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
                 }`}
-                title="โหลดข้อมูลล่าสุด"
+                title="โหลดข้อมูลล่าสุดจาก Google Apps Script"
               >
-                <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RotateCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">รีเฟรช</span>
               </button>
             </div>
           </div>
         </header>
 
+        {/* Global Connection Error Alert Banner */}
+        {apiError && (
+          <div className="mx-2 sm:mx-4 mt-2.5 p-3 bg-rose-50/95 border border-rose-300/80 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-rose-800 shadow-xs shrink-0">
+            <div className="flex items-start gap-2.5 overflow-hidden">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div className="overflow-hidden">
+                <p className="font-bold text-rose-900 leading-tight">
+                  ไม่สามารถเชื่อมต่อ Google Apps Script Web App API ได้
+                </p>
+                <p className="text-[11px] text-rose-700 mt-0.5 truncate">
+                  สาเหตุ: {apiError}
+                </p>
+                <p className="text-[10px] text-rose-500 font-mono mt-0.5 truncate">
+                  URL: {PurchasingGasService.gasApiUrl || '(ยังไม่ได้ระบุ VITE_GAS_API_URL ใน .env)'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => fetchPurchasingData(true)}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-semibold rounded-lg shrink-0 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs self-end sm:self-auto text-xs"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+              <span>ลองเชื่อมต่อใหม่</span>
+            </button>
+          </div>
+        )}
+
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 p-2 sm:p-4 lg:p-4 w-full transition-all duration-300">
+        <main className="flex-1 min-w-0 p-2 sm:p-4 lg:p-4 w-full transition-all duration-300 flex flex-col min-h-0 overflow-hidden">
           <PurchasingErrorBoundary>
             <AnimatePresence mode="wait">
               <motion.div
@@ -584,7 +646,7 @@ export const PurchasingPage: React.FC = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.98 }}
                 transition={{ type: "spring", stiffness: 480, damping: 26, mass: 0.5 }}
-                className="h-full"
+                className="h-full flex-1 flex flex-col min-h-0"
               >
                 {activeTab === 'receiving' && (
                   <RMReceivingModule

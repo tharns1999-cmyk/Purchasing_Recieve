@@ -101,6 +101,32 @@ export function normalizeAttachmentItem(item: string | ReceivingAttachmentItem):
       uploadedAt: new Date().toISOString(),
     };
   }
+
+  if (typeof item === 'object' && item !== null) {
+    const driveUrl = item.driveViewUrl || (typeof item.url === 'string' && item.url.startsWith('http') ? item.url : '');
+    let fileId = item.id || '';
+    if (!fileId || fileId.startsWith('att-')) {
+      const dMatch = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (dMatch && dMatch[1]) {
+        fileId = dMatch[1];
+      } else {
+        const idMatch = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (idMatch && idMatch[1]) {
+          fileId = idMatch[1];
+        }
+      }
+    }
+
+    return {
+      id: fileId || item.id || `att-${Date.now()}`,
+      name: item.name || (fileId ? `RM-Attachment-${fileId.slice(0, 6)}.jpg` : 'รูปภาพแนบ'),
+      url: item.url || (fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : ''),
+      driveViewUrl: item.driveViewUrl || (fileId ? `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk` : undefined),
+      uploadedAt: item.uploadedAt || new Date().toISOString(),
+      sizeBytes: item.sizeBytes,
+    };
+  }
+
   return item;
 }
 
@@ -151,59 +177,8 @@ export function formatPhoneNumber(phone?: string | number): string {
 // 1. Mock Suppliers Data
 export const MOCK_SUPPLIERS: Supplier[] = [];
 
-// 2. Mock RM List (bound to specific Suppliers)
-export const MOCK_RM_ITEMS: RMItem[] = [
-  {
-    id: 'rm-01',
-    code: 'RM-001',
-    name: 'ใบตอง',
-    category: 'Type 2',
-    categoryLabel: 'ผักใบ (Type 2)',
-    supplierId: 'sup-05',
-    supplierName: 'สามารถ จงจำ',
-    unit: 'kg',
-  },
-  {
-    id: 'rm-02',
-    code: 'RM-002',
-    name: 'ข่า',
-    category: 'Type 1',
-    categoryLabel: 'พืชเกษตร ยกเว้นผักใบ (Type 1)',
-    supplierId: 'sup-06',
-    supplierName: 'บริษัท กอเงินออร์แกนิคฟาร์ม จำกัด',
-    unit: 'kg',
-  },
-  {
-    id: 'rm-03',
-    code: 'RM-003',
-    name: 'เนื้อมะพร้าวอ่อน',
-    category: 'Type 1',
-    categoryLabel: 'พืชเกษตร ยกเว้นผักใบ (Type 1)',
-    supplierId: 'sup-08',
-    supplierName: 'อนุพงษ์ ด้วงพลู',
-    unit: 'kg',
-  },
-  {
-    id: 'rm-04',
-    code: 'RM-004',
-    name: 'ใบมะกรูด',
-    category: 'Type 2',
-    categoryLabel: 'ผักใบ (Type 2)',
-    supplierId: 'sup-15',
-    supplierName: 'วัลยา ปัททุม',
-    unit: 'kg',
-  },
-  {
-    id: 'rm-05',
-    code: 'RM-005',
-    name: 'ปลาทู',
-    category: 'Type 4',
-    categoryLabel: 'ประมง (Type 4)',
-    supplierId: 'sup-42',
-    supplierName: 'สมชาย ประมงไทย',
-    unit: 'kg',
-  },
-];
+// 2. Mock RM List (Empty by default — all data fetched from GAS Google Sheet)
+export const MOCK_RM_ITEMS: RMItem[] = [];
 
 // 3. Defect Matrix Rules (SD-PC-03 R01)
 

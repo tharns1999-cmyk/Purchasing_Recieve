@@ -196,6 +196,11 @@ function syncAndSanitizePurchasingSheets() {
  * Format Sheet Headers with Custom Color and Bold Styling
  */
 function setupPurchasingSheetHeaders(sheet, headers, hexColor) {
+  const currentMaxCols = sheet.getMaxColumns();
+  if (currentMaxCols < headers.length) {
+    sheet.insertColumnsAfter(currentMaxCols, headers.length - currentMaxCols);
+  }
+
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
   } else {

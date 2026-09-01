@@ -192,6 +192,7 @@ function getPurchasingInitialData(forceRefresh) {
 
     // --- Receiving Records ---
     try {
+      ensureReceivingRecordsSheet(ss);
       const receivingRecords = getSheetDataAsObjects(ss, 'DB_ReceivingRecords') || [];
       const seenIds = new Set();
       formattedReceiving = [];
@@ -323,51 +324,115 @@ function testPurchasingRMItems() {
   }
 }
 
+const RECEIVING_RECORDS_HEADERS = [
+  'id', 'billNo', 'receiveDate', 'supplierId', 'supplierName',
+  'rmId', 'rmName', 'rmCategory', 'receiveQty', 'sampleQty',
+  'defectQty', 'defectPercent', 'isPass', 'remark', 'createdAt', 'hasIssueLog',
+  'postProductionDefectQty', 'postProductionRemark', 'postProductionDate', 'unitPrice',
+  'attachments'
+];
+
+/**
+ * Ensure DB_ReceivingRecords sheet exists and has all 21 columns and correct headers.
+ */
+function ensureReceivingRecordsSheet(ss) {
+  let sheet = ss.getSheetByName('DB_ReceivingRecords');
+  if (!sheet) {
+    sheet = ss.insertSheet('DB_ReceivingRecords');
+  }
+
+  const expectedHeaders = RECEIVING_RECORDS_HEADERS;
+  const currentMaxCols = sheet.getMaxColumns();
+  if (currentMaxCols < expectedHeaders.length) {
+    sheet.insertColumnsAfter(currentMaxCols, expectedHeaders.length - currentMaxCols);
+  }
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(expectedHeaders);
+    const hRange = sheet.getRange(1, 1, 1, expectedHeaders.length);
+    hRange.setFontWeight('bold').setBackground('#059669').setFontColor('#ffffff').setHorizontalAlignment('center');
+    sheet.setFrozenRows(1);
+  } else {
+    const currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), expectedHeaders.length)).getValues()[0];
+    const missingOrDifferent = expectedHeaders.some((h, idx) => String(currentHeaders[idx] || '').trim().toLowerCase() !== h.toLowerCase());
+    
+    if (missingOrDifferent) {
+      sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
+      const hRange = sheet.getRange(1, 1, 1, expectedHeaders.length);
+      hRange.setFontWeight('bold').setBackground('#059669').setFontColor('#ffffff').setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+    }
+  }
+
+  return sheet;
+}
+
+/**
+ * Build a row array for DB_ReceivingRecords mapped dynamically by header names
+ */
+function buildReceivingRow(record, headers) {
+  const targetHeaders = headers || RECEIVING_RECORDS_HEADERS;
+  const headerMap = {};
+  targetHeaders.forEach((h, idx) => {
+    headerMap[String(h).trim()] = idx;
+  });
+
+  const row = new Array(targetHeaders.length).fill('');
+
+  const setVal = (key, val) => {
+    if (key in headerMap) {
+      row[headerMap[key]] = val !== undefined && val !== null ? val : '';
+    }
+  };
+
+  setVal('id', record.id);
+  setVal('billNo', record.billNo);
+  setVal('receiveDate', record.receiveDate);
+  setVal('supplierId', record.supplierId);
+  setVal('supplierName', record.supplierName);
+  setVal('rmId', record.rmId);
+  setVal('rmName', record.rmName);
+  setVal('rmCategory', record.rmCategory);
+  setVal('receiveQty', record.receiveQty !== undefined ? record.receiveQty : '');
+  setVal('sampleQty', record.sampleQty !== undefined ? record.sampleQty : '');
+  setVal('defectQty', record.defectQty !== undefined ? record.defectQty : '');
+  setVal('defectPercent', record.defectPercent !== undefined ? record.defectPercent : '');
+  setVal('isPass', record.isPass !== undefined ? record.isPass : true);
+  setVal('remark', record.remark || '');
+  setVal('createdAt', record.createdAt || getThaiTimestamp());
+  setVal('hasIssueLog', record.hasIssueLog !== undefined ? record.hasIssueLog : false);
+  setVal('postProductionDefectQty', record.postProductionDefectQty !== undefined && record.postProductionDefectQty !== '' ? record.postProductionDefectQty : '');
+  setVal('postProductionRemark', record.postProductionRemark || '');
+  setVal('postProductionDate', record.postProductionDate || '');
+  setVal('unitPrice', record.unitPrice !== undefined && record.unitPrice !== '' ? record.unitPrice : '');
+  setVal('attachments', formatAttachmentsForSheet(record.id, record.billNo, record.attachments));
+
+  return row;
+}
+
 /**
  * Save New or Edit Receiving Record
  */
 function saveReceivingRecord(record, clientMeta) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('DB_ReceivingRecords');
-    if (!sheet) {
-      setupPurchasingDatabase();
-      sheet = ss.getSheetByName('DB_ReceivingRecords');
-    }
+    const sheet = ensureReceivingRecordsSheet(ss);
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    const idColIdx = headers.indexOf('id');
+    const actualIdCol = idColIdx !== -1 ? idColIdx : 0;
 
     const data = sheet.getDataRange().getValues();
     let rowIndex = -1;
 
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(record.id)) {
+      if (String(data[i][actualIdCol]).trim() === String(record.id).trim()) {
         rowIndex = i + 1;
         break;
       }
     }
 
-    const row = [
-      record.id,
-      record.billNo,
-      record.receiveDate,
-      record.supplierId,
-      record.supplierName,
-      record.rmId,
-      record.rmName,
-      record.rmCategory,
-      record.receiveQty,
-      record.sampleQty,
-      record.defectQty,
-      record.defectPercent,
-      record.isPass,
-      record.remark || '',
-      record.createdAt || getThaiTimestamp(),
-      record.hasIssueLog || false,
-      record.postProductionDefectQty !== undefined ? record.postProductionDefectQty : '',
-      record.postProductionRemark || '',
-      record.postProductionDate || '',
-      record.unitPrice !== undefined ? record.unitPrice : '',
-      formatAttachmentsForSheet(record.id, record.billNo, record.attachments)
-    ];
+    const row = buildReceivingRow(record, headers);
 
     if (rowIndex > 0) {
       sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
@@ -406,6 +471,7 @@ function saveReceivingRecord(record, clientMeta) {
 
     return { status: 'success', data: record };
   } catch (err) {
+    Logger.log('saveReceivingRecord error: ' + err.toString());
     return { status: 'error', message: err.toString() };
   }
 }
@@ -420,53 +486,29 @@ function saveReceivingRecordsBatch(records, clientMeta) {
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('DB_ReceivingRecords');
-    if (!sheet) {
-      setupPurchasingDatabase();
-      sheet = ss.getSheetByName('DB_ReceivingRecords');
-    }
+    const sheet = ensureReceivingRecordsSheet(ss);
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    const idColIdx = headers.indexOf('id');
+    const actualIdCol = idColIdx !== -1 ? idColIdx : 0;
 
     const data = sheet.getDataRange().getValues();
     const existingIds = new Map();
     for (let i = 1; i < data.length; i++) {
-      existingIds.set(String(data[i][0]), i + 1);
+      const idVal = String(data[i][actualIdCol]).trim();
+      if (idVal) existingIds.set(idVal, i + 1);
     }
 
     const rowsToAppend = [];
     let updatedCount = 0;
 
     for (const record of records) {
-      const row = [
-        record.id,
-        record.billNo,
-        record.receiveDate,
-        record.supplierId,
-        record.supplierName,
-        record.rmId,
-        record.rmName,
-        record.rmCategory,
-        record.receiveQty,
-        record.sampleQty,
-        record.defectQty,
-        record.defectPercent,
-        record.isPass,
-        record.remark || '',
-        record.createdAt || getThaiTimestamp(),
-        record.hasIssueLog || false,
-        record.postProductionDefectQty !== undefined ? record.postProductionDefectQty : '',
-        record.postProductionRemark || '',
-        record.postProductionDate || '',
-        record.unitPrice !== undefined ? record.unitPrice : '',
-        formatAttachmentsForSheet(record.id, record.billNo, record.attachments)
-      ];
-
-      const rowIndex = existingIds.get(String(record.id));
+      const row = buildReceivingRow(record, headers);
+      const rowIndex = existingIds.get(String(record.id).trim());
       if (rowIndex) {
-        // Update existing row
         sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
         updatedCount++;
       } else {
-        // Prepare to append new row
         rowsToAppend.push(row);
       }
     }
@@ -492,6 +534,64 @@ function saveReceivingRecordsBatch(records, clientMeta) {
 
     return { status: 'success', added: rowsToAppend.length, updated: updatedCount };
   } catch (err) {
+    Logger.log('saveReceivingRecordsBatch error: ' + err.toString());
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+/**
+ * Direct Save / Update Attachments for a Receiving Record
+ */
+function saveReceivingAttachments(recordId, attachments, clientMeta) {
+  try {
+    if (!recordId) return { status: 'error', message: 'recordId is required' };
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ensureReceivingRecordsSheet(ss);
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    const idColIdx = headers.indexOf('id');
+    const attColIdx = headers.indexOf('attachments');
+
+    if (idColIdx === -1 || attColIdx === -1) {
+      return { status: 'error', message: 'Required columns not found in sheet' };
+    }
+
+    const formattedAttStr = formatAttachmentsForSheet(recordId, '', attachments);
+
+    const data = sheet.getDataRange().getValues();
+    let targetRow = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idColIdx]).trim() === String(recordId).trim()) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+
+    if (targetRow > 0) {
+      sheet.getRange(targetRow, attColIdx + 1).setValue(formattedAttStr);
+    }
+
+    SpreadsheetApp.flush();
+    clearPurchasingCache();
+
+    logAuditEntry(
+      clientMeta,
+      'UPDATE_ATTACHMENTS',
+      'ReceivingRecord',
+      recordId,
+      `Attachments updated: ${Array.isArray(attachments) ? attachments.length : 0} files`
+    );
+
+    return {
+      status: 'success',
+      data: {
+        recordId: recordId,
+        attachments: parseAttachmentsFromSheet(formattedAttStr)
+      }
+    };
+  } catch (err) {
+    Logger.log('saveReceivingAttachments error: ' + err.toString());
     return { status: 'error', message: err.toString() };
   }
 }
@@ -1117,7 +1217,20 @@ function getOrCreateReceivingAttachmentsFolder() {
 }
 
 /**
- * Upload an attachment to Google Drive and return Drive URL & Direct view URL
+ * Extract Google Drive File ID from various URL patterns
+ */
+function extractDriveFileId(url) {
+  if (!url || typeof url !== 'string') return '';
+  const dMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (dMatch && dMatch[1]) return dMatch[1];
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch && idMatch[1]) return idMatch[1];
+  return '';
+}
+
+/**
+ * Upload an attachment to Google Drive, return attachment metadata,
+ * and auto-save directly to DB_ReceivingRecords sheet row if recordId is provided.
  */
 function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType, fileName) {
   try {
@@ -1158,7 +1271,6 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
 
     const fileId = file.getId();
     const driveViewUrl = 'https://drive.google.com/file/d/' + fileId + '/view?usp=drivesdk';
-    // Direct CDN preview link that works fast in <img> tags
     const directUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
 
     const attachmentItem = {
@@ -1169,6 +1281,37 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
       uploadedAt: new Date().toISOString(),
       sizeBytes: file.getSize()
     };
+
+    // Auto-update DB_ReceivingRecords immediately if recordId is provided
+    if (recordId) {
+      try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const sheet = ensureReceivingRecordsSheet(ss);
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+        const idColIdx = headers.indexOf('id');
+        const attColIdx = headers.indexOf('attachments');
+
+        if (idColIdx !== -1 && attColIdx !== -1) {
+          const data = sheet.getDataRange().getValues();
+          for (let i = 1; i < data.length; i++) {
+            if (String(data[i][idColIdx]).trim() === String(recordId).trim()) {
+              const currentAttStr = String(data[i][attColIdx] || '').trim();
+              const existingList = parseAttachmentsFromSheet(currentAttStr);
+              if (!existingList.some(item => item.id === fileId || item.url === directUrl)) {
+                existingList.push(attachmentItem);
+                const updatedAttStr = formatAttachmentsForSheet(recordId, billNo, existingList);
+                sheet.getRange(i + 1, attColIdx + 1).setValue(updatedAttStr);
+                SpreadsheetApp.flush();
+                clearPurchasingCache();
+              }
+              break;
+            }
+          }
+        }
+      } catch (sheetSyncErr) {
+        Logger.log('Warning: uploadReceivingAttachmentToDrive could not auto-sync to sheet: ' + sheetSyncErr.toString());
+      }
+    }
 
     return {
       status: 'success',
@@ -1181,15 +1324,44 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
 }
 
 /**
- * Delete an attachment file from Google Drive
+ * Delete an attachment file from Google Drive and remove from DB_ReceivingRecords
  */
-function deleteReceivingAttachmentFromDrive(fileId) {
+function deleteReceivingAttachmentFromDrive(fileId, recordId) {
   try {
     if (!fileId) return { status: 'error', message: 'No fileId provided' };
     const file = DriveApp.getFileById(fileId);
     if (file) {
       file.setTrashed(true);
     }
+
+    if (recordId) {
+      try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const sheet = ensureReceivingRecordsSheet(ss);
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+        const idColIdx = headers.indexOf('id');
+        const attColIdx = headers.indexOf('attachments');
+
+        if (idColIdx !== -1 && attColIdx !== -1) {
+          const data = sheet.getDataRange().getValues();
+          for (let i = 1; i < data.length; i++) {
+            if (String(data[i][idColIdx]).trim() === String(recordId).trim()) {
+              const currentAttStr = String(data[i][attColIdx] || '').trim();
+              const existingList = parseAttachmentsFromSheet(currentAttStr);
+              const filteredList = existingList.filter(item => item.id !== fileId);
+              const updatedAttStr = formatAttachmentsForSheet(recordId, '', filteredList);
+              sheet.getRange(i + 1, attColIdx + 1).setValue(updatedAttStr);
+              SpreadsheetApp.flush();
+              clearPurchasingCache();
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        Logger.log('Warning: deleteReceivingAttachmentFromDrive sheet sync failed: ' + e.toString());
+      }
+    }
+
     return { status: 'success', fileId: fileId };
   } catch (err) {
     Logger.log('deleteReceivingAttachmentFromDrive error: ' + err.toString());
@@ -1199,9 +1371,8 @@ function deleteReceivingAttachmentFromDrive(fileId) {
 
 /**
  * Format attachments for Google Sheet cell:
- * - If base64, auto-upload to Google Drive and convert to Drive URL
- * - Returns a clean string of Google Drive URL(s) separated by comma/newline:
- *   e.g. "https://drive.google.com/file/d/1ABC.../view"
+ * Returns clean Drive URLs separated by comma:
+ * e.g. "https://drive.google.com/file/d/1ABC.../view"
  */
 function formatAttachmentsForSheet(recordId, billNo, attachments) {
   if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
@@ -1217,7 +1388,6 @@ function formatAttachmentsForSheet(recordId, billNo, attachments) {
       if (item.indexOf('http') === 0) {
         driveUrls.push(item);
       } else if (item.indexOf('data:') === 0) {
-        // Auto-upload Base64 to Google Drive
         const res = uploadReceivingAttachmentToDrive(recordId, billNo, item, 'image/jpeg');
         if (res && res.status === 'success' && res.data && res.data.driveViewUrl) {
           driveUrls.push(res.data.driveViewUrl);
@@ -1231,7 +1401,6 @@ function formatAttachmentsForSheet(recordId, billNo, attachments) {
       } else if (item.url && item.url.indexOf('http') === 0) {
         driveUrls.push(item.url);
       } else if (item.url && item.url.indexOf('data:') === 0) {
-        // Auto-upload Base64 to Google Drive
         const res = uploadReceivingAttachmentToDrive(recordId, billNo, item.url, 'image/jpeg', item.name);
         if (res && res.status === 'success' && res.data && res.data.driveViewUrl) {
           driveUrls.push(res.data.driveViewUrl);
@@ -1243,7 +1412,6 @@ function formatAttachmentsForSheet(recordId, billNo, attachments) {
   }
 
   if (uploadFailed) {
-    // If ANY upload fails (usually due to Drive Permission missing), fallback to JSON to prevent data loss
     return JSON.stringify(attachments);
   }
 
@@ -1280,24 +1448,25 @@ function parseAttachmentsFromSheet(rawAttachments) {
 
 function parseSingleAttachment(item) {
   if (!item) return null;
-  if (typeof item === 'object' && item.url) {
+  if (typeof item === 'object' && item !== null) {
+    if (item.url || item.driveViewUrl) {
+      const fileId = item.id || extractDriveFileId(item.driveViewUrl || item.url);
+      return {
+        id: fileId || item.id || ('att-' + Date.now()),
+        name: item.name || (fileId ? `RM-Attachment-${fileId.slice(0, 6)}.jpg` : 'รูปภาพแนบ'),
+        url: item.url || (fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : ''),
+        driveViewUrl: item.driveViewUrl || (fileId ? `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk` : undefined),
+        uploadedAt: item.uploadedAt || new Date().toISOString(),
+        sizeBytes: item.sizeBytes
+      };
+    }
     return item;
   }
+
   const str = String(item).trim();
   if (!str) return null;
 
-  // Extract Drive File ID if it's a Drive URL
-  let fileId = '';
-  const dMatch = str.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (dMatch && dMatch[1]) {
-    fileId = dMatch[1];
-  } else {
-    const idMatch = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (idMatch && idMatch[1]) {
-      fileId = idMatch[1];
-    }
-  }
-
+  const fileId = extractDriveFileId(str);
   if (fileId) {
     return {
       id: fileId,
@@ -1317,4 +1486,5 @@ function parseSingleAttachment(item) {
     uploadedAt: new Date().toISOString()
   };
 }
+
 
