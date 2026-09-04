@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import useSWR from 'swr';
 import {
   PackageCheck,
   AlertTriangle,
@@ -80,6 +81,11 @@ class PurchasingErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorB
 }
 
 export const PurchasingPage: React.FC = () => {
+  // Initial cached data for instant 0-second display
+  const initialCache = PurchasingGasService.getInitialCachedData();
+  const hasCachedData =
+    initialCache.suppliers.length > 0 || initialCache.receivingRecords.length > 0;
+
   // Navigation Sidebar States
   const [activeTab, setActiveTab] = useState<'receiving' | 'issuelog' | 'analytics' | 'master'>(
     'receiving'
@@ -89,65 +95,85 @@ export const PurchasingPage: React.FC = () => {
 
   const isExpanded = isSidebarPinned || isSidebarHovered;
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(!hasCachedData);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Master Dynamic Data States
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [rmItems, setRmItems] = useState<RMItem[]>([]);
-  const [defectMatrix, setDefectMatrix] = useState<Record<string, DefectRule[]>>({});
-  const [defectCategories, setDefectCategories] = useState<DefectCategoryItem[]>([]);
+  // Master Dynamic Data States (Populated immediately from cache for 0-second display)
+  const [suppliers, setSuppliers] = useState<Supplier[]>(initialCache.suppliers || []);
+  const [rmItems, setRmItems] = useState<RMItem[]>(initialCache.rmItems || []);
+  const [defectMatrix, setDefectMatrix] = useState<Record<string, DefectRule[]>>(
+    initialCache.defectMatrix || {}
+  );
+  const [defectCategories, setDefectCategories] = useState<DefectCategoryItem[]>(
+    initialCache.defectCategories || []
+  );
 
-  // Transaction States
-  const [receivingRecords, setReceivingRecords] = useState<ReceivingRecord[]>([]);
-  const [issueLogs, setIssueLogs] = useState<IssueLogRecord[]>([]);
+  // Transaction States (Populated immediately from cache for 0-second display)
+  const [receivingRecords, setReceivingRecords] = useState<ReceivingRecord[]>(
+    initialCache.receivingRecords || []
+  );
+  const [issueLogs, setIssueLogs] = useState<IssueLogRecord[]>(initialCache.issueLogs || []);
 
-  // Load Purchasing Data strictly from GAS API
-  const fetchPurchasingData = async (force = false) => {
-    if (force) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
+  // SWR Client-Side In-Memory Cache with staleTime: 5 mins (1000 * 60 * 5)
+  const { mutate: mutatePurchasing } = useSWR(
+    'purchasingData',
+    () => PurchasingGasService.loadPurchasingData(false),
+    {
+      fallbackData: initialCache,
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      dedupingInterval: 1000 * 60 * 5,
+      onSuccess: (data) => {
+        if (data) {
+          setSuppliers(data.suppliers || []);
+          setRmItems(data.rmItems || []);
+          if (data.defectMatrix && Object.keys(data.defectMatrix).length > 0) {
+            setDefectMatrix(data.defectMatrix);
+          }
+          setDefectCategories(data.defectCategories || []);
+          setReceivingRecords(data.receivingRecords || []);
+          setIssueLogs(data.issueLogs || []);
+          setIsLoading(false);
+          setApiError(null);
+        }
+      },
+      onError: (err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[PurchasingPage] ❌ Error loading data via SWR:', err);
+        setApiError(msg || 'ไม่สามารถเชื่อมต่อกับ Google Apps Script API ได้');
+        setIsLoading(false);
+      },
     }
-    setApiError(null);
+  );
 
+  // Manual Refresh Handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setApiError(null);
     try {
-      const data = await PurchasingGasService.loadPurchasingData(force);
-      setSuppliers(data.suppliers || []);
-      setRmItems(data.rmItems || []);
-      if (data.defectMatrix && Object.keys(data.defectMatrix).length > 0) {
-        setDefectMatrix(data.defectMatrix);
+      PurchasingGasService.invalidateCache();
+      const freshData = await PurchasingGasService.loadPurchasingData(true);
+      await mutatePurchasing(freshData, false);
+      setSuppliers(freshData.suppliers || []);
+      setRmItems(freshData.rmItems || []);
+      if (freshData.defectMatrix && Object.keys(freshData.defectMatrix).length > 0) {
+        setDefectMatrix(freshData.defectMatrix);
       }
-      setDefectCategories(data.defectCategories || []);
-      setReceivingRecords(data.receivingRecords || []);
-      setIssueLogs(data.issueLogs || []);
+      setDefectCategories(freshData.defectCategories || []);
+      setReceivingRecords(freshData.receivingRecords || []);
+      setIssueLogs(freshData.issueLogs || []);
       setApiError(null);
-    } catch (err: unknown) {
+    } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[PurchasingPage] ❌ Error loading data from GAS API:', err);
       setApiError(msg || 'ไม่สามารถเชื่อมต่อกับ Google Apps Script API ได้');
-      // If error occurs, fallback to cached data in localStorage if any exists
-      const cached = PurchasingGasService.loadFromLocalStorage();
-      if (cached.suppliers.length > 0 || cached.receivingRecords.length > 0) {
-        setSuppliers(cached.suppliers);
-        setRmItems(cached.rmItems);
-        setDefectMatrix(cached.defectMatrix);
-        setDefectCategories(cached.defectCategories);
-        setReceivingRecords(cached.receivingRecords);
-        setIssueLogs(cached.issueLogs);
-      }
     } finally {
-      setIsLoading(false);
       setIsRefreshing(false);
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchPurchasingData();
-  }, []);
-
-  const handleRefresh = async () => {
-    await fetchPurchasingData(true);
+  const fetchPurchasingData = async (_force = false) => {
+    await handleRefresh();
   };
 
   const handleSaveDefectCategory = (category: DefectCategoryItem) => {
@@ -156,19 +182,24 @@ export const PurchasingPage: React.FC = () => {
       return exists ? prev.map((c) => (c.id === category.id ? category : c)) : [...prev, category];
     });
     PurchasingGasService.saveDefectCategory(category);
+    PurchasingGasService.invalidateCache();
   };
 
   const handleDeleteDefectCategory = (id: string) => {
     setDefectCategories((prev) => prev.filter((c) => c.id !== id));
     PurchasingGasService.deleteDefectCategory(id);
+    PurchasingGasService.invalidateCache();
   };
 
   // Auto Issue Log Modal State
   const [isIssueModalOpen, setIsIssueModalOpen] = useState<boolean>(false);
   const [prefillData, setPrefillData] = useState<PrefillIssueData | null>(null);
 
-  // KPI Computations
-  const openIssuesCount = issueLogs.filter((i) => i.status !== 'Resolved').length;
+  // KPI Computations (Memoized to prevent redundant recalculation on hover/tab switch)
+  const openIssuesCount = useMemo(
+    () => issueLogs.filter((i) => i.status !== 'Resolved').length,
+    [issueLogs]
+  );
 
   // Handlers
   const handleAddReceivingRecord = (record: ReceivingRecord) => {

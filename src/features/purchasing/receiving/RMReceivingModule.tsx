@@ -28,6 +28,7 @@ import {
   Supplier,
   DefectRule,
 } from '@/services/DefectMatrixService';
+import { PurchasingGasService } from '@/services/PurchasingGasService';
 
 export type SortKey =
   | 'receiveDate'
@@ -485,6 +486,7 @@ export const RMReceivingModule: React.FC<RMReceivingModuleProps> = ({
       const updated: ReceivingRecord = { ...target, attachments: newAttachments };
       onUpdateReceivingRecord(updated);
       setAttachmentRecord(updated);
+      PurchasingGasService.invalidateCache();
     }
   };
 

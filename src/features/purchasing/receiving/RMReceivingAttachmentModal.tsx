@@ -471,6 +471,7 @@ export const RMReceivingAttachmentModal: React.FC<RMReceivingAttachmentModalProp
                 src={previewItem.url}
                 alt={previewItem.name || 'รูปภาพขนาดเต็ม'}
                 className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+                loading="lazy"
                 onError={(e) => handleImageError(e, previewItem)}
               />
             </div>
