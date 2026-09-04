@@ -10,6 +10,7 @@ import {
   formatPhoneNumber,
 } from './DefectMatrixService';
 import { AuditService } from './AuditService';
+import { mutate } from 'swr';
 
 const LOCAL_STORAGE_PURCHASING_KEY = 'purchasing_system_db_v1';
 
@@ -119,6 +120,47 @@ export class PurchasingGasService {
     }
   }
 
+  // --- Client-Side In-Memory Cache (SWR / React Query Stale-Time: 5 mins) ---
+  private static _memoryCache: PurchasingDbData | null = null;
+  private static _cacheTimestamp = 0;
+  public static readonly STALE_TIME = 1000 * 60 * 5; // 5 minutes
+
+  /**
+   * Invalidate in-memory cache and trigger SWR revalidation immediately
+   */
+  static invalidateCache(): void {
+    this._cacheTimestamp = 0;
+    this._memoryCache = null;
+    try {
+      mutate('purchasingData');
+    } catch {
+      // safe fallback if outside SWR scope
+    }
+    console.log('[PurchasingGasService] 🔄 Purchasing Cache invalidated');
+  }
+
+  /**
+   * Check if in-memory cache is still fresh (< 5 mins)
+   */
+  static hasFreshCache(): boolean {
+    return !!this._memoryCache && Date.now() - this._cacheTimestamp < this.STALE_TIME;
+  }
+
+  /**
+   * Get initial cached data for instant 0-second display
+   */
+  static getInitialCachedData(): PurchasingDbData {
+    if (this._memoryCache) {
+      return this._memoryCache;
+    }
+    const cached = this.loadFromLocalStorage();
+    if (cached.suppliers.length > 0 || cached.receivingRecords.length > 0) {
+      this._memoryCache = cached;
+      return cached;
+    }
+    return cached;
+  }
+
   /**
    * Load all purchasing data strictly from Google Apps Script Google Sheet
    */
@@ -127,6 +169,12 @@ export class PurchasingGasService {
 
   static async loadPurchasingData(forceRefresh = false): Promise<PurchasingDbData> {
     console.log('Connecting to GAS URL:', this.gasApiUrl, { forceRefresh });
+
+    const now = Date.now();
+    if (!forceRefresh && this._memoryCache && now - this._cacheTimestamp < this.STALE_TIME) {
+      console.log('[PurchasingGasService] ⚡ Serving data from in-memory cache (staleTime 5m)');
+      return this._memoryCache;
+    }
 
     if (!this.isGasApiAvailable) {
       const errorMsg = 'Google Apps Script API URL is missing! Please configure VITE_GAS_API_URL in .env';
@@ -200,7 +248,9 @@ export class PurchasingGasService {
           'issueLogs=', data.issueLogs.length
         );
 
-        // Cache real data only
+        // Cache real data in memory and localStorage
+        this._memoryCache = data;
+        this._cacheTimestamp = Date.now();
         this.saveToLocalStorage(data);
         return data;
       } else {
@@ -290,6 +340,8 @@ export class PurchasingGasService {
       const current = this.loadFromLocalStorage();
       const updated = { ...current, ...data };
       localStorage.setItem(LOCAL_STORAGE_PURCHASING_KEY, JSON.stringify(updated));
+      this._memoryCache = updated;
+      this.invalidateCache();
     } catch (e) {
       console.error('Failed to save purchasing data to LocalStorage:', e);
     }
@@ -530,13 +582,14 @@ export class PurchasingGasService {
       const itemData: ReceivingAttachmentItem = {
         id: fileId,
         name: String(res.data?.name || finalFileName),
-        url: String(res.data?.url || res.fileUrl || res.url || `https://lh3.googleusercontent.com/d/${fileId}`),
+        url: String(res.data?.url || res.fileUrl || res.url || `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`),
         driveViewUrl: String(res.data?.driveViewUrl || res.driveViewUrl || `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`),
         downloadUrl: res.data?.downloadUrl || res.downloadUrl,
         mimeType: 'image/jpeg',
         uploadedAt: res.data?.uploadedAt || new Date().toISOString(),
         sizeBytes: res.data?.size || res.data?.sizeBytes,
       };
+      this.invalidateCache();
       console.log('[PurchasingGasService] ✅ File uploaded successfully to Google Drive:', itemData.name, itemData.url);
       return normalizeAttachmentItem(itemData);
     } else {
@@ -555,6 +608,7 @@ export class PurchasingGasService {
       r.id === recordId ? { ...r, attachments } : r
     );
     this.saveToLocalStorage({ receivingRecords: updatedReceiving });
+    this.invalidateCache();
 
     const clientMeta = await AuditService.getClientMetadata();
     await this.callGasApi('saveReceivingAttachments', { recordId, attachments, clientMeta });
@@ -562,6 +616,7 @@ export class PurchasingGasService {
 
   static async deleteAttachmentFile(fileId: string, recordId?: string): Promise<void> {
     if (!fileId || fileId.startsWith('att-')) return;
+    this.invalidateCache();
     await this.callGasApi('deleteReceivingAttachmentFromDrive', { fileId, recordId });
   }
 }

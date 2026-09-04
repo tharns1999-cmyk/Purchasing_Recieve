@@ -89,7 +89,7 @@ export function normalizeAttachmentItem(item: string | ReceivingAttachmentItem):
       return {
         id: fileId,
         name: `RM-Attachment-${fileId.slice(0, 6)}.jpg`,
-        url: `https://lh3.googleusercontent.com/d/${fileId}`,
+        url: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`,
         driveViewUrl: `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`,
         uploadedAt: new Date().toISOString(),
       };
@@ -122,7 +122,7 @@ export function normalizeAttachmentItem(item: string | ReceivingAttachmentItem):
     return {
       id: fileId || item.id || `att-${Date.now()}`,
       name: item.name || (fileId ? `RM-Attachment-${fileId.slice(0, 6)}.jpg` : 'รูปภาพแนบ'),
-      url: item.url || (fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : ''),
+      url: item.url || (fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w800` : ''),
       driveViewUrl: item.driveViewUrl || (fileId ? `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk` : undefined),
       uploadedAt: item.uploadedAt || new Date().toISOString(),
       sizeBytes: item.sizeBytes,

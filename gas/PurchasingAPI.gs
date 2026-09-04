@@ -1274,7 +1274,7 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
 
     const fileId = file.getId();
     const driveViewUrl = 'https://drive.google.com/file/d/' + fileId + '/view?usp=drivesdk';
-    const directUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
+    const directUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
     const downloadUrl = file.getDownloadUrl ? file.getDownloadUrl() : driveViewUrl;
 
     const attachmentItem = {
@@ -1464,7 +1464,7 @@ function parseSingleAttachment(item) {
       return {
         id: fileId || item.id || ('att-' + Date.now()),
         name: item.name || (fileId ? `RM-Attachment-${fileId.slice(0, 6)}.jpg` : 'รูปภาพแนบ'),
-        url: item.url || (fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : ''),
+        url: item.url || (fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w800` : ''),
         driveViewUrl: item.driveViewUrl || (fileId ? `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk` : undefined),
         uploadedAt: item.uploadedAt || new Date().toISOString(),
         sizeBytes: item.sizeBytes
@@ -1481,7 +1481,7 @@ function parseSingleAttachment(item) {
     return {
       id: fileId,
       name: 'RM-Attachment-' + fileId.slice(0, 6) + '.jpg',
-      url: 'https://lh3.googleusercontent.com/d/' + fileId,
+      url: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800',
       driveViewUrl: 'https://drive.google.com/file/d/' + fileId + '/view?usp=drivesdk',
       uploadedAt: new Date().toISOString()
     };

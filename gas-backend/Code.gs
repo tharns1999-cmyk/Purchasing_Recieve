@@ -1592,7 +1592,7 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
     
     const fileId = file.getId();
     const driveViewUrl = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
-    const directImageUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+    const directImageUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
     const downloadUrl = file.getDownloadUrl ? file.getDownloadUrl() : driveViewUrl;
     
     return {
