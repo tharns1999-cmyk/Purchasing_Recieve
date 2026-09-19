@@ -8,8 +8,11 @@ function doGet(e) {
 
   // Otherwise, serve the Web App UI (Frontend)
   const template = HtmlService.createTemplateFromFile('index');
-  // Inject initial data for the frontend to consume immediately
-  template.initialData = JSON.stringify(getPurchasingInitialData(false));
+  try {
+    template.initialData = JSON.stringify(getPurchasingInitialData(false));
+  } catch (err) {
+    template.initialData = JSON.stringify({ status: 'error', message: err.toString() });
+  }
 
   return template.evaluate()
     .setTitle('บันทึกรับเข้าวัตถุดิบ (RM Receiving)')
@@ -29,7 +32,9 @@ function doPost(e) {
     payload = e.parameter;
   }
 
-  return handleApiRequest(payload);
+  const result = handleApiRequest(payload);
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function handleApiRequest(payload) {

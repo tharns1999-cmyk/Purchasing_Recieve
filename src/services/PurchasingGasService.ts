@@ -143,11 +143,14 @@ export class PurchasingGasService {
   static _lastMeta: any = null;
 
   static async loadPurchasingData(forceRefresh = false) {
-    if (!forceRefresh && typeof window !== 'undefined' && (window as any).GAS_INITIAL_DATA) {
-      const data = (window as any).GAS_INITIAL_DATA;
+    if (!forceRefresh && typeof window !== 'undefined' && ((window as any).SERVER_INITIAL_DATA || (window as any).GAS_INITIAL_DATA)) {
+      const data = (window as any).SERVER_INITIAL_DATA || (window as any).GAS_INITIAL_DATA;
+      delete (window as any).SERVER_INITIAL_DATA;
       delete (window as any).GAS_INITIAL_DATA; // Consume it once
       if (data && data.status !== 'error') {
         return data;
+      } else if (data && data.status === 'error') {
+        console.error('[PurchasingGasService] ❌ Initial Data Error:', data.message);
       }
     }
 

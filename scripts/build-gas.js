@@ -18,8 +18,8 @@ try {
   if (fs.existsSync(distHtmlPath)) {
     let html = fs.readFileSync(distHtmlPath, 'utf8');
     
-    // Inject window.GAS_INITIAL_DATA script before closing </head>
-    const initialDataScript = `\n    <script>window.GAS_INITIAL_DATA = <?!= typeof initialData !== 'undefined' ? initialData : 'null' ?>;</script>\n  `;
+    // Inject window.SERVER_INITIAL_DATA script before closing </head>
+    const initialDataScript = `\n    <script>window.SERVER_INITIAL_DATA = <?!= typeof initialData !== 'undefined' ? initialData : 'null' ?>;</script>\n  `;
     html = html.replace('</head>', `${initialDataScript}</head>`);
     
     fs.writeFileSync(gasHtmlPath, html);
