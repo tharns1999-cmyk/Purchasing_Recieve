@@ -52,6 +52,39 @@ export class PurchasingGasService {
     payload: Record<string, unknown> = {},
     timeoutMs = 30000
   ): Promise<T> {
+    
+    // 1. Detect if running inside Google Apps Script (Web App iframe)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof (window as any).google !== 'undefined' && (window as any).google?.script?.run) {
+      console.log(`[PurchasingGasService] 🚀 Sending API Request [${action}] via google.script.run`);
+      return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('GAS Timeout')), timeoutMs);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).google.script.run
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .withSuccessHandler((result: any) => {
+            clearTimeout(timer);
+            // Handle JSON string returned by handleApiRequest
+            if (typeof result === 'string') {
+              try {
+                resolve(JSON.parse(result) as T);
+              } catch (e) {
+                resolve(result as T);
+              }
+            } else {
+              resolve(result as T);
+            }
+          })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .withFailureHandler((err: any) => {
+            clearTimeout(timer);
+            reject(err);
+          })
+          .handleApiRequest({ action, payload, ...payload });
+      });
+    }
+
+    // 2. Fallback to HTTP Fetch for Vercel/Localhost
     const url = this.gasApiUrl;
     console.log('Connecting to GAS URL:', url || '(NOT CONFIGURED)');
 
