@@ -5,15 +5,13 @@ function doGet(e) {
   }
 
   try {
-    const template = HtmlService.createTemplateFromFile('index');
-    return template.evaluate()
-      .setTitle('ระบบจัดซื้อ & บันทึกรับเข้าวัตถุดิบ (RM Purchasing & QC System)')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    const data = getPurchasingInitialData(false);
+    return ContentService.createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
-      status: 'success',
-      message: '🚀 Purchasing & QC GAS Backend API is running',
+      status: 'error',
+      message: 'Failed to fetch initial data: ' + err.toString(),
       timestamp: getThaiTimestamp()
     })).setMimeType(ContentService.MimeType.JSON);
   }
