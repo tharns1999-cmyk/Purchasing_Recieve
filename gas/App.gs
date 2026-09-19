@@ -4,17 +4,12 @@ function doGet(e) {
     return handleApiRequest(e.parameter);
   }
 
-  try {
-    const data = getPurchasingInitialData(false);
-    return ContentService.createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: 'Failed to fetch initial data: ' + err.toString(),
-      timestamp: getThaiTimestamp()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
+  // Otherwise, serve the Web App UI (Frontend)
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
+    .setTitle('บันทึกรับเข้าวัตถุดิบ (RM Receiving)')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function doPost(e) {
