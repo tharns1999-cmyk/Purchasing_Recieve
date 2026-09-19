@@ -16,8 +16,14 @@ try {
   }
 
   if (fs.existsSync(distHtmlPath)) {
-    fs.copyFileSync(distHtmlPath, gasHtmlPath);
-    console.log('✅ Successfully copied dist/index.html to gas/index.html');
+    let html = fs.readFileSync(distHtmlPath, 'utf8');
+    
+    // Inject window.GAS_INITIAL_DATA script before closing </head>
+    const initialDataScript = `\n    <script>window.GAS_INITIAL_DATA = <?!= typeof initialData !== 'undefined' ? initialData : 'null' ?>;</script>\n  `;
+    html = html.replace('</head>', `${initialDataScript}</head>`);
+    
+    fs.writeFileSync(gasHtmlPath, html);
+    console.log('✅ Successfully copied and injected dist/index.html to gas/index.html');
   } else {
     console.error('❌ dist/index.html not found! Please run vite build first.');
     process.exit(1);

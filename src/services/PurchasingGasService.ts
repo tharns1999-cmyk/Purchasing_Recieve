@@ -52,41 +52,27 @@ export class PurchasingGasService {
     payload: Record<string, unknown> = {},
     timeoutMs = 30000
   ): Promise<T> {
-    
-    // 1. Detect if running inside Google Apps Script (Web App iframe)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof (window as any).google !== 'undefined' && (window as any).google?.script?.run) {
-      console.log(`[PurchasingGasService] 🚀 Sending API Request [${action}] via google.script.run`);
-      return new Promise<T>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('GAS Timeout')), timeoutMs);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).google.script.run
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const url = this.gasApiUrl;
+    console.log('Connecting to GAS URL:', url || '(NOT CONFIGURED)');
+
+    // 1. Detect if running inside Google Apps Script Web App natively
+    const win = typeof window !== 'undefined' ? (window as any) : null;
+    if (win && win.google && win.google.script && win.google.script.run) {
+      return new Promise((resolve, reject) => {
+        win.google.script.run
           .withSuccessHandler((result: any) => {
-            clearTimeout(timer);
-            // Handle JSON string returned by handleApiRequest
-            if (typeof result === 'string') {
-              try {
-                resolve(JSON.parse(result) as T);
-              } catch (e) {
-                resolve(result as T);
-              }
+            if (result && result.status === 'error') {
+              reject(new Error(result.message || 'GAS API Error'));
             } else {
               resolve(result as T);
             }
           })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .withFailureHandler((err: any) => {
-            clearTimeout(timer);
-            reject(err);
+          .withFailureHandler((error: Error) => {
+            reject(new Error('GAS Network Error: ' + error.message));
           })
           .handleApiRequest({ action, payload, ...payload });
       });
     }
-
-    // 2. Fallback to HTTP Fetch for Vercel/Localhost
-    const url = this.gasApiUrl;
-    console.log('Connecting to GAS URL:', url || '(NOT CONFIGURED)');
 
     if (!url) {
       const errMsg = 'VITE_GAS_API_URL is not configured. Please check your .env file or set GAS_API_URL.';
@@ -156,7 +142,19 @@ export class PurchasingGasService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static _lastMeta: any = null;
 
-  static async loadPurchasingData(forceRefresh = false): Promise<PurchasingDbData> {
+  static async getPurchasingData(forceRefresh = false) {
+    if (!forceRefresh && typeof window !== 'undefined' && (window as any).GAS_INITIAL_DATA) {
+      const data = (window as any).GAS_INITIAL_DATA;
+      delete (window as any).GAS_INITIAL_DATA; // Consume it once
+      if (data && data.status !== 'error') {
+        return data;
+      }
+    }
+
+    const payload = {
+      action: 'getPurchasingData',
+      forceRefresh
+    };
     console.log('Connecting to GAS URL:', this.gasApiUrl, { forceRefresh });
 
     if (!this.isGasApiAvailable) {

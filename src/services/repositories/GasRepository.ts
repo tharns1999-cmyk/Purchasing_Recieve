@@ -64,39 +64,31 @@ export class GasRepository extends LocalStorageRepository {
     payload: Record<string, unknown> = {},
     timeoutMs = 20000
   ): Promise<T> {
-    
-    // 1. Detect if running inside Google Apps Script (Web App iframe)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof (window as any).google !== 'undefined' && (window as any).google?.script?.run) {
-      return new Promise<T>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('GAS Timeout')), timeoutMs);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).google.script.run
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const url = this.gasApiUrl;
+
+    // Detect if running inside Google Apps Script Web App (window.google.script.run exists)
+    const win = typeof window !== 'undefined' ? (window as any) : null;
+    if (win && win.google && win.google.script && win.google.script.run) {
+      return new Promise((resolve, reject) => {
+        win.google.script.run
           .withSuccessHandler((result: any) => {
-            clearTimeout(timer);
-            // Handle JSON string returned by handleApiRequest
-            if (typeof result === 'string') {
-              try {
-                resolve(JSON.parse(result) as T);
-              } catch (e) {
-                resolve(result as T);
-              }
+            if (result && result.status === 'error') {
+              reject(new Error(result.message || 'GAS API Error'));
             } else {
               resolve(result as T);
             }
           })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .withFailureHandler((err: any) => {
-            clearTimeout(timer);
-            reject(err);
+          .withFailureHandler((error: Error) => {
+            reject(new Error('GAS Network Error: ' + error.message));
           })
-          .handleApiRequest({ action, payload, ...payload });
+          .handleApiRequest({
+            action,
+            payload,
+            ...payload,
+          });
       });
     }
 
-    // 2. Fallback to HTTP Fetch for Vercel/Localhost
-    const url = this.gasApiUrl;
     if (!url) {
       throw new Error('VITE_GAS_API_URL is not configured in .env');
     }

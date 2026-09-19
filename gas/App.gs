@@ -1,12 +1,17 @@
 function doGet(e) {
   // If API request with query parameters (e.g. ?action=getPurchasingData)
-  if (e && e.parameter && e.parameter.action) {
-    return handleApiRequest(e.parameter);
+  if (e && e.parameter && (e.parameter.action || e.parameter.api === 'true')) {
+    const result = handleApiRequest(e.parameter);
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 
   // Otherwise, serve the Web App UI (Frontend)
-  return HtmlService.createTemplateFromFile('index')
-    .evaluate()
+  const template = HtmlService.createTemplateFromFile('index');
+  // Inject initial data for the frontend to consume immediately
+  template.initialData = JSON.stringify(getPurchasingInitialData(false));
+
+  return template.evaluate()
     .setTitle('บันทึกรับเข้าวัตถุดิบ (RM Receiving)')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);

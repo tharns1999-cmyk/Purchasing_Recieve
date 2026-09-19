@@ -81,7 +81,7 @@ function _getValueByFlexibleKey(obj, headerName) {
 }
 
 function _sanitizeAndAutoAssignSheet(sheetName, customerMap) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
   let sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
@@ -241,7 +241,7 @@ function _objectsToRows(objects, headers) {
 }
 
 function _writeToSheet(sheetName, objects) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
   let sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
@@ -281,7 +281,7 @@ function _writeToSheet(sheetName, objects) {
 
 function _appendRows(sheetName, objects) {
   if (!objects || objects.length === 0) return;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
   let sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);

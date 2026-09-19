@@ -1,5 +1,5 @@
 function setupDatabase() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
   
   const sheetsToSetup = [
     { name: "Customers", headers: SCHEMA_HEADERS_MAP["Customers"] },
@@ -74,7 +74,7 @@ const PURCHASING_SHEET_NAMES = {
  * Setup Purchasing Database Sheets and Headers
  */
 function setupPurchasingDatabase() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
 
   // 1. DB_Suppliers Sheet
   let supSheet = ss.getSheetByName(PURCHASING_SHEET_NAMES.SUPPLIERS);
@@ -174,7 +174,7 @@ function setupPurchasingDatabase() {
   setupPurchasingSheetHeaders(auditSheet, auditHeaders, '#0f172a');
 
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast('✅ ตั้งค่าตารางฐานข้อมูลระบบจัดซื้อสำเร็จ!', 'Purchasing System', 5);
+    SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE').toast('✅ ตั้งค่าตารางฐานข้อมูลระบบจัดซื้อสำเร็จ!', 'Purchasing System', 5);
   } catch (e) {
     console.log('✅ ตั้งค่าตารางฐานข้อมูลระบบจัดซื้อสำเร็จ! (รันผ่าน Editor)');
   }
@@ -186,7 +186,7 @@ function setupPurchasingDatabase() {
 function syncAndSanitizePurchasingSheets() {
   setupPurchasingDatabase();
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast('🔄 ล้างและซิงค์หัวตารางระบบจัดซื้อสำเร็จ!', 'Purchasing System', 5);
+    SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE').toast('🔄 ล้างและซิงค์หัวตารางระบบจัดซื้อสำเร็จ!', 'Purchasing System', 5);
   } catch (e) {
     console.log('🔄 ล้างและซิงค์หัวตารางระบบจัดซื้อสำเร็จ! (รันผ่าน Editor)');
   }
@@ -223,6 +223,6 @@ function setupPurchasingSheetHeaders(sheet, headers, hexColor) {
 function testDriveAuth() {
   const folder = getOrCreateReceivingAttachmentsFolder();
   Logger.log('✅ Google Drive is authorized! Attachments folder ID: ' + folder.getId());
-  SpreadsheetApp.getActiveSpreadsheet().toast('✅ อนุญาตสิทธิ์ Google Drive สำเร็จแล้ว! โฟลเดอร์ RM_Receiving_Attachments พร้อมใช้งาน', 'Purchasing System', 6);
+  SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE').toast('✅ อนุญาตสิทธิ์ Google Drive สำเร็จแล้ว! โฟลเดอร์ RM_Receiving_Attachments พร้อมใช้งาน', 'Purchasing System', 6);
   return folder.getId();
 }

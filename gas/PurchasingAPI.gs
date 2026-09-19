@@ -107,7 +107,7 @@ function getPurchasingInitialData(forceRefresh) {
   let formattedIssues = [];
 
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
 
     // Auto-setup if essential sheet is missing
     if (!ss.getSheetByName('DB_Suppliers') || !ss.getSheetByName('DB_DefectMatrix') || !ss.getSheetByName('DB_DefectCategories') || !ss.getSheetByName('Audit_Logs')) {
@@ -277,7 +277,7 @@ function getPurchasingInitialData(forceRefresh) {
  * Run this from the GAS Script Editor to verify data.
  */
 function testPurchasingRMItems() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
   const sheet = ss.getSheetByName('DB_RMItems');
   if (!sheet) {
     Logger.log('❌ Sheet DB_RMItems not found');
@@ -415,7 +415,7 @@ function buildReceivingRow(record, headers) {
  */
 function saveReceivingRecord(record, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ensureReceivingRecordsSheet(ss);
 
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
@@ -485,7 +485,7 @@ function saveReceivingRecordsBatch(records, clientMeta) {
       return { status: 'error', message: 'No records provided' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ensureReceivingRecordsSheet(ss);
 
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
@@ -546,7 +546,7 @@ function saveReceivingAttachments(recordId, attachments, clientMeta) {
   try {
     if (!recordId) return { status: 'error', message: 'recordId is required' };
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ensureReceivingRecordsSheet(ss);
 
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
@@ -601,7 +601,7 @@ function saveReceivingAttachments(recordId, attachments, clientMeta) {
  */
 function saveIssueLogRecord(record, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     let sheet = ss.getSheetByName('DB_IssueLogs');
     if (!sheet) {
       setupPurchasingDatabase();
@@ -674,7 +674,7 @@ function saveIssueLogRecord(record, clientMeta) {
 
 function deleteReceivingRecord(id, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ss.getSheetByName('DB_ReceivingRecords');
     if (!sheet) return { status: 'error', message: 'Sheet not found' };
 
@@ -703,7 +703,7 @@ function deleteReceivingRecord(id, clientMeta) {
  */
 function saveSupplierRecord(supplier, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     let sheet = ss.getSheetByName('DB_Suppliers');
     if (!sheet) {
       setupPurchasingDatabase();
@@ -783,7 +783,7 @@ function saveSupplierRecord(supplier, clientMeta) {
  */
 function deleteSupplierRecord(id, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ss.getSheetByName('DB_Suppliers');
     const data = sheet.getDataRange().getValues();
 
@@ -811,7 +811,7 @@ function deleteSupplierRecord(id, clientMeta) {
  */
 function saveRMRecord(rmItem, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ss.getSheetByName('DB_RMItems');
     const data = sheet.getDataRange().getValues();
     let rowIndex = -1;
@@ -881,7 +881,7 @@ function saveRMRecord(rmItem, clientMeta) {
  */
 function deleteRMRecord(id, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ss.getSheetByName('DB_RMItems');
     const data = sheet.getDataRange().getValues();
 
@@ -909,7 +909,7 @@ function deleteRMRecord(id, clientMeta) {
  */
 function saveDefectMatrixRules(matrix, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ss.getSheetByName('DB_DefectMatrix');
     sheet.clearContents();
 
@@ -956,7 +956,7 @@ function saveDefectMatrixRules(matrix, clientMeta) {
  */
 function deleteIssueLogRecord(id, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ss.getSheetByName('DB_IssueLogs');
     if (!sheet) return { status: 'error', message: 'DB_IssueLogs not found' };
     
@@ -1003,7 +1003,7 @@ function deleteIssueLogRecord(id, clientMeta) {
  */
 function saveDefectCategory(categoryObj, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     let sheet = ss.getSheetByName('DB_DefectCategories');
     if (!sheet) {
       setupPurchasingDatabase();
@@ -1052,7 +1052,7 @@ function saveDefectCategory(categoryObj, clientMeta) {
  */
 function deleteDefectCategory(id, clientMeta) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     const sheet = ss.getSheetByName('DB_DefectCategories');
     if (!sheet) return { status: 'error', message: 'DB_DefectCategories not found' };
     
@@ -1125,7 +1125,7 @@ function getSheetDataAsObjects(ss, sheetName) {
  */
 function logAuditEntry(clientMeta, action, moduleName, recordId, details) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
     let sheet = ss.getSheetByName('Audit_Logs');
     if (!sheet) {
       sheet = ss.insertSheet('Audit_Logs');
@@ -1258,7 +1258,7 @@ function uploadReceivingAttachmentToDrive(recordId, billNo, base64Data, mimeType
     // Auto-update DB_ReceivingRecords immediately if recordId is provided
     if (recordId) {
       try {
-        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
         const sheet = ensureReceivingRecordsSheet(ss);
         const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
         const idColIdx = headers.indexOf('id');
@@ -1314,7 +1314,7 @@ function deleteReceivingAttachmentFromDrive(fileId, recordId) {
 
     if (recordId) {
       try {
-        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const ss = SpreadsheetApp.openById('13xLjgBYXZYqC-RAP8rodNtkMeRykJr9rpD4UA2jkkkE');
         const sheet = ensureReceivingRecordsSheet(ss);
         const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
         const idColIdx = headers.indexOf('id');
