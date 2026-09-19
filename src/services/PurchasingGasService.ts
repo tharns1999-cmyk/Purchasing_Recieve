@@ -142,7 +142,7 @@ export class PurchasingGasService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static _lastMeta: any = null;
 
-  static async getPurchasingData(forceRefresh = false) {
+  static async loadPurchasingData(forceRefresh = false) {
     if (!forceRefresh && typeof window !== 'undefined' && (window as any).GAS_INITIAL_DATA) {
       const data = (window as any).GAS_INITIAL_DATA;
       delete (window as any).GAS_INITIAL_DATA; // Consume it once
@@ -151,10 +151,6 @@ export class PurchasingGasService {
       }
     }
 
-    const payload = {
-      action: 'getPurchasingData',
-      forceRefresh
-    };
     console.log('Connecting to GAS URL:', this.gasApiUrl, { forceRefresh });
 
     if (!this.isGasApiAvailable) {
