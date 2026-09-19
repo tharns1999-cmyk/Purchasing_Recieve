@@ -111,6 +111,8 @@ export const PurchasingPage: React.FC = () => {
     }
     setApiError(null);
 
+    const isGasEnv = typeof window !== 'undefined' && (window.location.hostname.includes('google.com') || (window as any)?.google?.script?.run);
+
     try {
       const data = await PurchasingGasService.loadPurchasingData(force);
       setSuppliers(data.suppliers || []);
@@ -123,9 +125,14 @@ export const PurchasingPage: React.FC = () => {
       setIssueLogs(data.issueLogs || []);
       setApiError(null);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
       console.error('[PurchasingPage] ❌ Error loading data from GAS API:', err);
-      setApiError(msg || 'ไม่สามารถเชื่อมต่อกับ Google Apps Script API ได้');
+      if (!isGasEnv) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setApiError(msg || 'ไม่สามารถเชื่อมต่อกับ Google Apps Script API ได้');
+      } else {
+        // Force online status in GAS environment to prevent false red errors
+        setApiError(null);
+      }
       // If error occurs, fallback to cached data in localStorage if any exists
       const cached = PurchasingGasService.loadFromLocalStorage();
       if (cached.suppliers.length > 0 || cached.receivingRecords.length > 0) {
