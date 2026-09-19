@@ -27,7 +27,12 @@ export class PurchasingGasService {
    * Resolve Google Apps Script Web App Endpoint URL from localStorage override or Vite environment variable
    */
   public static get gasApiUrl(): string {
-    return 'https://script.google.com/macros/s/AKfycbwF-vDCkLp6vtcH8iRMv4IeSxUjixgAX-Z4F13ajxayC_n2lP_eEEcb7VR_YQdDgghC/exec';
+    const envUrl = (import.meta as any).env?.VITE_GAS_API_URL;
+    if (typeof window !== 'undefined') {
+      const customUrl = localStorage.getItem('GAS_API_URL');
+      if (customUrl) return customUrl;
+    }
+    return envUrl || 'https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec';
   }
 
   public static get isGasApiAvailable(): boolean {
@@ -82,7 +87,10 @@ export class PurchasingGasService {
       throw new Error(errMsg);
     }
 
-    console.log(`[PurchasingGasService] 🚀 Sending API Request [${action}] to:`, url);
+    const separator = url.includes('?') ? '&' : '?';
+    const targetUrl = `${url}${separator}action=${encodeURIComponent(action)}&api=true`;
+
+    console.log(`[PurchasingGasService] 🚀 Sending API Request [${action}] to:`, targetUrl);
 
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
@@ -94,7 +102,7 @@ export class PurchasingGasService {
         ...payload,
       });
 
-      const response = await fetch(url, {
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',
@@ -199,6 +207,16 @@ export class PurchasingGasService {
           'rmItems=', data.rmItems.length,
           'receivingRecords=', data.receivingRecords.length,
           'issueLogs=', data.issueLogs.length
+        );
+        this.saveToLocalStorage(data);
+        return data;
+      } else if (res && ((res as any).suppliers !== undefined || (res as any).receivingRecords !== undefined)) {
+        const data = this._normalizeApiData(res);
+        console.log(
+          '[PurchasingGasService] ✅ Real flat data loaded from GAS:',
+          'suppliers=', data.suppliers.length,
+          'rmItems=', data.rmItems.length,
+          'receivingRecords=', data.receivingRecords.length
         );
         this.saveToLocalStorage(data);
         return data;

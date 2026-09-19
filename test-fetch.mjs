@@ -1,6 +1,6 @@
 import fs from 'fs';
 const payload = { action: 'getPurchasingData', forceRefresh: false };
-fetch('https://script.google.com/macros/s/AKfycbwF-vDCkLp6vtcH8iRMv4IeSxUjixgAX-Z4F13ajxayC_n2lP_eEEcb7VR_YQdDgghC/exec', {
+fetch('https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec', {
   method: 'POST',
   headers: { 'Content-Type': 'text/plain;charset=utf-8' },
   body: JSON.stringify(payload),

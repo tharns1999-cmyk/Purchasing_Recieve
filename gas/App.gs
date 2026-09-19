@@ -1,24 +1,39 @@
 function doGet(e) {
-  // If API request with query parameters (e.g. ?action=getPurchasingData)
-  if (e && e.parameter && (e.parameter.action || e.parameter.api === 'true')) {
-    const result = handleApiRequest(e.parameter);
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
+  // 1. ตรวจสอบว่าเป็น Request จาก API ภายนอก (เช่น Vercel) หรือไม่
+  // เช็กว่ามี parameter ส่งมา หรือไม่มี parameter แต่ระบุว่าต้องการข้อมูล
+  const isApi = (e && e.parameter && (e.parameter.action || e.parameter.api === 'true')) ||
+                (e && e.queryString && e.queryString.length > 0);
+
+  // ถ้าเป็นการเรียก API หรือยิงมาแบบ fetch API ให้ส่ง JSON กลับไปเสมอ
+  if (isApi || (e && e.parameter && e.parameter.format === 'json')) {
+    const params = (e && e.parameter) ? { ...e.parameter } : {};
+    if (!params.action && (params.api === 'true' || params.format === 'json')) {
+      params.action = 'getPurchasingData';
+    }
+    return handleApiRequest(params);
   }
 
-  // Otherwise, serve the Web App UI (Frontend)
-  // Always use forceRefresh=true to bypass CacheService and inject fresh data from Sheet
-  const template = HtmlService.createTemplateFromFile('index');
+  // 2. ถ้าผู้ใช้กดเปิดลิงก์ผ่าน Browser ตรงๆ ให้เรนเดอร์หน้าเว็บ HTML
   try {
-    template.initialData = JSON.stringify(getPurchasingInitialData(true));
-  } catch (err) {
-    template.initialData = JSON.stringify({ status: 'error', message: err.toString() });
-  }
+    const template = HtmlService.createTemplateFromFile('index');
+    // ฝังข้อมูลก้อนแรกไว้ใน template เพื่อให้หน้าเว็บบน Apps Script ไม่ต้อง fetch ซ้ำ
+    try {
+      template.initialData = JSON.stringify(getPurchasingInitialData());
+    } catch (err) {
+      template.initialData = JSON.stringify({ status: 'error', message: err.toString() });
+    }
 
-  return template.evaluate()
-    .setTitle('บันทึกรับเข้าวัตถุดิบ (RM Receiving)')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    return template.evaluate()
+      .setTitle('บันทึกรับเข้าวัตถุดิบ (RM Receiving)')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  } catch (err) {
+    // กรณีที่ไม่มีไฟล์ index.html หรือเกิดข้อผิดพลาด ให้ fallback ส่ง JSON แทน
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 function doPost(e) {
@@ -33,9 +48,12 @@ function doPost(e) {
     payload = e.parameter;
   }
 
-  const result = handleApiRequest(payload);
-  return ContentService.createTextOutput(JSON.stringify(result))
-    .setMimeType(ContentService.MimeType.JSON);
+  // If action wasn't in body payload, check query parameter
+  if (!payload.action && e && e.parameter && e.parameter.action) {
+    payload.action = e.parameter.action;
+  }
+
+  return handleApiRequest(payload);
 }
 
 function handleApiRequest(payload) {

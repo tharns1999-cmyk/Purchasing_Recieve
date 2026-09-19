@@ -12,9 +12,17 @@
 // =========================================================================
 
 function doGet(e) {
+  // 1. ตรวจสอบว่าเป็น Request จาก API ภายนอก (เช่น Vercel) หรือไม่
+  const isApi = (e && e.parameter && (e.parameter.action || e.parameter.api === 'true')) ||
+                (e && e.queryString && e.queryString.length > 0);
+
   // If API request with query parameters (e.g. ?action=getPurchasingData)
-  if (e && e.parameter && e.parameter.action) {
-    return handleApiRequest(e.parameter);
+  if (isApi || (e && e.parameter && e.parameter.format === 'json')) {
+    const params = (e && e.parameter) ? { ...e.parameter } : {};
+    if (!params.action && (params.api === 'true' || params.format === 'json')) {
+      params.action = 'getPurchasingData';
+    }
+    return handleApiRequest(params);
   }
 
   // Default health check / status response

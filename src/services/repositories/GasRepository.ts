@@ -49,7 +49,12 @@ export class GasRepository extends LocalStorageRepository {
   private gasInitialized = false;
 
   private get gasApiUrl(): string {
-    return 'https://script.google.com/macros/s/AKfycbwF-vDCkLp6vtcH8iRMv4IeSxUjixgAX-Z4F13ajxayC_n2lP_eEEcb7VR_YQdDgghC/exec';
+    const envUrl = (import.meta as any).env?.VITE_GAS_API_URL;
+    if (typeof window !== 'undefined') {
+      const customUrl = localStorage.getItem('GAS_API_URL');
+      if (customUrl) return customUrl;
+    }
+    return envUrl || 'https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec';
   }
 
   private get isGasApiAvailable(): boolean {
@@ -93,11 +98,14 @@ export class GasRepository extends LocalStorageRepository {
       throw new Error('VITE_GAS_API_URL is not configured in .env');
     }
 
+    const separator = url.includes('?') ? '&' : '?';
+    const targetUrl = `${url}${separator}action=${encodeURIComponent(action)}&api=true`;
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',
