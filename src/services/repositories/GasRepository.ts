@@ -52,7 +52,13 @@ export class GasRepository extends LocalStorageRepository {
     const envUrl = (import.meta as any).env?.VITE_GAS_API_URL;
     if (typeof window !== 'undefined') {
       const customUrl = localStorage.getItem('GAS_API_URL');
-      if (customUrl) return customUrl;
+      if (customUrl) {
+        if (customUrl.includes('AKfycbwF-') || customUrl.includes('AKfycbzGVSL')) {
+          localStorage.removeItem('GAS_API_URL');
+        } else {
+          return customUrl;
+        }
+      }
     }
     return envUrl || 'https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec';
   }
@@ -105,18 +111,42 @@ export class GasRepository extends LocalStorageRepository {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
-        body: JSON.stringify({
-          action,
-          payload,
-          ...payload,
-        }),
-        redirect: 'follow',
-      });
+      const isReadAction = action === 'getSnapshot' || action === 'getPurchasingData' || action === 'getPurchasingInitialData';
+      let response: Response;
+      if (isReadAction) {
+        try {
+          response = await fetch(targetUrl, {
+            method: 'GET',
+            redirect: 'follow',
+          });
+        } catch {
+          response = await fetch(targetUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8',
+            },
+            body: JSON.stringify({
+              action,
+              payload,
+              ...payload,
+            }),
+            redirect: 'follow',
+          });
+        }
+      } else {
+        response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify({
+            action,
+            payload,
+            ...payload,
+          }),
+          redirect: 'follow',
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`GAS API HTTP error: ${response.status} ${response.statusText}`);

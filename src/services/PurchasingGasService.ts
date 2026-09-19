@@ -30,7 +30,13 @@ export class PurchasingGasService {
     const envUrl = (import.meta as any).env?.VITE_GAS_API_URL;
     if (typeof window !== 'undefined') {
       const customUrl = localStorage.getItem('GAS_API_URL');
-      if (customUrl) return customUrl;
+      if (customUrl) {
+        if (customUrl.includes('AKfycbwF-') || customUrl.includes('AKfycbzGVSL')) {
+          localStorage.removeItem('GAS_API_URL');
+        } else {
+          return customUrl;
+        }
+      }
     }
     return envUrl || 'https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec';
   }
@@ -96,20 +102,42 @@ export class PurchasingGasService {
     const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
     try {
+      const isReadAction = action === 'getPurchasingData' || action === 'getPurchasingInitialData';
       const requestBody = JSON.stringify({
         action,
         payload,
         ...payload,
       });
 
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
-        body: requestBody,
-        redirect: 'follow',
-      });
+      let response: Response;
+      if (isReadAction) {
+        // Use GET with query parameters as standard Apps Script Web App API request
+        try {
+          response = await fetch(targetUrl, {
+            method: 'GET',
+            redirect: 'follow',
+          });
+        } catch (getErr) {
+          console.warn('[PurchasingGasService] ⚠️ GET request failed, falling back to POST:', getErr);
+          response = await fetch(targetUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8',
+            },
+            body: requestBody,
+            redirect: 'follow',
+          });
+        }
+      } else {
+        response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: requestBody,
+          redirect: 'follow',
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`GAS API HTTP Error ${response.status}: ${response.statusText}`);

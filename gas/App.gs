@@ -1,22 +1,31 @@
 function doGet(e) {
-  // 1. ตรวจสอบว่าเป็น Request จาก API ภายนอก (เช่น Vercel) หรือไม่
-  // เช็กว่ามี parameter ส่งมา หรือไม่มี parameter แต่ระบุว่าต้องการข้อมูล
-  const isApi = (e && e.parameter && (e.parameter.action || e.parameter.api === 'true')) ||
-                (e && e.queryString && e.queryString.length > 0);
+  // 1. เช็กเงื่อนไข API - ถ้ามี Parameter action, api=true หรือ format=json ส่งมา ให้ทำงานแบบ API ทันที
+  const isApiCall = (e && e.parameter && (e.parameter.action || e.parameter.api === 'true' || e.parameter.format === 'json')) ||
+                    (e && e.queryString && e.queryString.length > 0);
 
-  // ถ้าเป็นการเรียก API หรือยิงมาแบบ fetch API ให้ส่ง JSON กลับไปเสมอ
-  if (isApi || (e && e.parameter && e.parameter.format === 'json')) {
-    const params = (e && e.parameter) ? { ...e.parameter } : {};
-    if (!params.action && (params.api === 'true' || params.format === 'json')) {
-      params.action = 'getPurchasingData';
+  if (isApiCall) {
+    try {
+      const params = (e && e.parameter) ? { ...e.parameter } : {};
+      if (!params.action && (params.api === 'true' || params.format === 'json')) {
+        params.action = 'getPurchasingData';
+      }
+      // ให้ฟังก์ชันดึงข้อมูลตาม Action ที่ขอ แล้วคืนค่าเป็น JSON เสมอ
+      const result = handleApiRequest(params);
+      if (result && typeof result.setMimeType === 'function') {
+        return result;
+      }
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
-    return handleApiRequest(params);
   }
 
-  // 2. ถ้าผู้ใช้กดเปิดลิงก์ผ่าน Browser ตรงๆ ให้เรนเดอร์หน้าเว็บ HTML
+  // 2. หากไม่มี Parameter ใดๆ เลย (คนพิมพ์ลิงก์ลงเบราว์เซอร์ตรงๆ) จึงจะคืนค่าหน้าเว็บ HTML
   try {
     const template = HtmlService.createTemplateFromFile('index');
-    // ฝังข้อมูลก้อนแรกไว้ใน template เพื่อให้หน้าเว็บบน Apps Script ไม่ต้อง fetch ซ้ำ
+    // ฝังข้อมูลตั้งต้น
     try {
       template.initialData = JSON.stringify(getPurchasingInitialData());
     } catch (err) {
@@ -28,11 +37,7 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (err) {
-    // กรณีที่ไม่มีไฟล์ index.html หรือเกิดข้อผิดพลาด ให้ fallback ส่ง JSON แทน
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput('System Error: ' + err.toString()).setMimeType(ContentService.MimeType.TEXT);
   }
 }
 
@@ -53,7 +58,12 @@ function doPost(e) {
     payload.action = e.parameter.action;
   }
 
-  return handleApiRequest(payload);
+  const result = handleApiRequest(payload);
+  if (result && typeof result.setMimeType === 'function') {
+    return result;
+  }
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function handleApiRequest(payload) {

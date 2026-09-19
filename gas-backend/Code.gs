@@ -12,17 +12,26 @@
 // =========================================================================
 
 function doGet(e) {
-  // 1. ตรวจสอบว่าเป็น Request จาก API ภายนอก (เช่น Vercel) หรือไม่
-  const isApi = (e && e.parameter && (e.parameter.action || e.parameter.api === 'true')) ||
-                (e && e.queryString && e.queryString.length > 0);
+  // 1. เช็กเงื่อนไข API - ถ้ามี Parameter action, api=true หรือ format=json ส่งมา ให้ทำงานแบบ API ทันที
+  const isApiCall = (e && e.parameter && (e.parameter.action || e.parameter.api === 'true' || e.parameter.format === 'json')) ||
+                    (e && e.queryString && e.queryString.length > 0);
 
-  // If API request with query parameters (e.g. ?action=getPurchasingData)
-  if (isApi || (e && e.parameter && e.parameter.format === 'json')) {
-    const params = (e && e.parameter) ? { ...e.parameter } : {};
-    if (!params.action && (params.api === 'true' || params.format === 'json')) {
-      params.action = 'getPurchasingData';
+  if (isApiCall) {
+    try {
+      const params = (e && e.parameter) ? { ...e.parameter } : {};
+      if (!params.action && (params.api === 'true' || params.format === 'json')) {
+        params.action = 'getPurchasingData';
+      }
+      const result = handleApiRequest(params);
+      if (result && typeof result.setMimeType === 'function') {
+        return result;
+      }
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
-    return handleApiRequest(params);
   }
 
   // Default health check / status response
