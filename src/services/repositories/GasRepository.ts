@@ -49,7 +49,7 @@ export class GasRepository extends LocalStorageRepository {
   private gasInitialized = false;
 
   private get gasApiUrl(): string {
-    return 'https://script.google.com/macros/s/AKfycbzGVSLvbmb-ZDaRl-SsP9r_MxYJxGALHYW21snIK5XoqP1vFGuZoppEU-jhaYxgNq6G/exec';
+    return 'https://script.google.com/macros/s/AKfycbwF-vDCkLp6vtcH8iRMv4IeSxUjixgAX-Z4F13ajxayC_n2lP_eEEcb7VR_YQdDgghC/exec';
   }
 
   private get isGasApiAvailable(): boolean {
