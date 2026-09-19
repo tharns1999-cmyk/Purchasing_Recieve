@@ -27,7 +27,7 @@ export class PurchasingGasService {
    * Resolve Google Apps Script Web App Endpoint URL from localStorage override or Vite environment variable
    */
   public static get gasApiUrl(): string {
-    return 'https://script.google.com/macros/s/AKfycbzGVSLvbmb-ZDaRl-SsP9r_MxYJxGALHYW21snIK5XoqP1vFGuZoppEU-jhaYxgNq6G/exec';
+    return 'https://script.google.com/macros/s/AKfycbzGVSLvbmb-ZDaRl-SsP9r_MxYJxGALHYW21snIK5XoqP1vFGuZoppEU-jhaYxgnNq6G/exec';
   }
 
   public static get isGasApiAvailable(): boolean {
