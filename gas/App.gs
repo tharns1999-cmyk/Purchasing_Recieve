@@ -7,9 +7,10 @@ function doGet(e) {
   }
 
   // Otherwise, serve the Web App UI (Frontend)
+  // Always use forceRefresh=true to bypass CacheService and inject fresh data from Sheet
   const template = HtmlService.createTemplateFromFile('index');
   try {
-    template.initialData = JSON.stringify(getPurchasingInitialData(false));
+    template.initialData = JSON.stringify(getPurchasingInitialData(true));
   } catch (err) {
     template.initialData = JSON.stringify({ status: 'error', message: err.toString() });
   }
@@ -204,6 +205,88 @@ function handleApiRequest(payload) {
       message: err.toString(),
       stack: err.stack
     })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// =============================================================================
+// BRIDGE FUNCTION FOR google.script.run (client-side GAS API calls)
+// Returns plain JS object — NOT ContentService — which is required for
+// google.script.run.withSuccessHandler() to work inside the GAS Web App.
+// =============================================================================
+function executeBackendAction(action, payload) {
+  try {
+    if (!action) return { status: 'error', message: 'action is required' };
+    const p = payload || {};
+    const clientMeta = p.clientMeta || null;
+
+    switch (action) {
+      case 'getInitialData':
+      case 'getPurchasingData':
+      case 'getPurchasingInitialData': {
+        const forceRefresh = p.forceRefresh === true || p.forceRefresh === 'true';
+        return getPurchasingInitialData(forceRefresh);
+      }
+
+      case 'saveReceivingRecord':
+        return saveReceivingRecord(p.record || p, clientMeta);
+
+      case 'saveReceivingRecordsBatch':
+        return saveReceivingRecordsBatch(p.records || (Array.isArray(p) ? p : []), clientMeta);
+
+      case 'deleteReceivingRecord':
+        return deleteReceivingRecord(p.id, clientMeta);
+
+      case 'saveReceivingAttachments':
+        return saveReceivingAttachments(p.recordId, p.attachments, clientMeta);
+
+      case 'uploadAttachment':
+      case 'uploadAttachmentToDrive':
+      case 'uploadReceivingAttachmentToDrive':
+        return uploadReceivingAttachmentToDrive(
+          p.recordId || p.id,
+          p.billNo || p.billNumber,
+          p.base64Data || p.fileData || p.image || p.file,
+          p.mimeType || p.type || 'image/jpeg',
+          p.fileName || p.name
+        );
+
+      case 'deleteAttachment':
+      case 'deleteReceivingAttachmentFromDrive':
+        return deleteReceivingAttachmentFromDrive(p.fileId, p.recordId);
+
+      case 'saveIssueLogRecord':
+        return saveIssueLogRecord(p.record || p, clientMeta);
+
+      case 'deleteIssueLogRecord':
+        return deleteIssueLogRecord(p.id, clientMeta);
+
+      case 'saveSupplierRecord':
+        return saveSupplierRecord(p.supplier || p, clientMeta);
+
+      case 'deleteSupplierRecord':
+        return deleteSupplierRecord(p.id, clientMeta);
+
+      case 'saveRMRecord':
+        return saveRMRecord(p.rmItem || p, clientMeta);
+
+      case 'deleteRMRecord':
+        return deleteRMRecord(p.id, clientMeta);
+
+      case 'saveDefectMatrixRules':
+        return saveDefectMatrixRules(p.matrix || p, clientMeta);
+
+      case 'saveDefectCategory':
+        return saveDefectCategory(p.category || p, clientMeta);
+
+      case 'deleteDefectCategory':
+        return deleteDefectCategory(p.id, clientMeta);
+
+      default:
+        return { status: 'error', message: 'Unknown action: ' + action };
+    }
+  } catch (err) {
+    Logger.log('[executeBackendAction] Error for action "' + action + '": ' + err.toString());
+    return { status: 'error', message: err.toString() };
   }
 }
 

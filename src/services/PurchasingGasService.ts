@@ -61,16 +61,18 @@ export class PurchasingGasService {
       return new Promise((resolve, reject) => {
         win.google.script.run
           .withSuccessHandler((result: any) => {
+            // executeBackendAction returns plain object; check for app-level errors
             if (result && result.status === 'error') {
-              reject(new Error(result.message || 'GAS API Error'));
+              reject(new Error(result.message || 'GAS Backend Error'));
             } else {
               resolve(result as T);
             }
           })
           .withFailureHandler((error: Error) => {
-            reject(new Error('GAS Network Error: ' + error.message));
+            reject(new Error('GAS Script Error: ' + (error?.message || String(error))));
           })
-          .handleApiRequest({ action, payload, ...payload });
+          // Use executeBackendAction (plain object return) instead of handleApiRequest (ContentService return)
+          .executeBackendAction(action, { ...payload });
       });
     }
 
@@ -143,14 +145,27 @@ export class PurchasingGasService {
   static _lastMeta: any = null;
 
   static async loadPurchasingData(forceRefresh = false) {
+    // Use server-injected initial data (from doGet) on first load — avoids a fetch round trip
     if (!forceRefresh && typeof window !== 'undefined' && ((window as any).SERVER_INITIAL_DATA || (window as any).GAS_INITIAL_DATA)) {
-      const data = (window as any).SERVER_INITIAL_DATA || (window as any).GAS_INITIAL_DATA;
+      const raw = (window as any).SERVER_INITIAL_DATA || (window as any).GAS_INITIAL_DATA;
       delete (window as any).SERVER_INITIAL_DATA;
-      delete (window as any).GAS_INITIAL_DATA; // Consume it once
-      if (data && data.status !== 'error') {
-        return data;
-      } else if (data && data.status === 'error') {
-        console.error('[PurchasingGasService] ❌ Initial Data Error:', data.message);
+      delete (window as any).GAS_INITIAL_DATA;
+
+      if (raw && raw.status !== 'error' && raw.data) {
+        console.log('[PurchasingGasService] ✅ Using SERVER_INITIAL_DATA injected by doGet');
+        // Normalize using the same pipeline as API data
+        const normalized = this._normalizeApiData(raw.data);
+        this.saveToLocalStorage(normalized);
+        return normalized;
+      } else if (raw && raw.suppliers !== undefined) {
+        // Some builds return the data directly (not nested in .data)
+        console.log('[PurchasingGasService] ✅ Using flat SERVER_INITIAL_DATA from doGet');
+        const normalized = this._normalizeApiData(raw);
+        this.saveToLocalStorage(normalized);
+        return normalized;
+      } else if (raw && raw.status === 'error') {
+        console.error('[PurchasingGasService] ❌ SERVER_INITIAL_DATA error:', raw.message);
+        // Fall through to fetch from API
       }
     }
 
@@ -177,58 +192,14 @@ export class PurchasingGasService {
       }
 
       if (res && res.status === 'success' && res.data) {
-        const rawSuppliers: Supplier[] = res.data.suppliers || [];
-        const formattedSuppliers = rawSuppliers.map((s) => ({
-          ...s,
-          phone: formatPhoneNumber(s.phone) === '-' ? '' : formatPhoneNumber(s.phone),
-        }));
-
-        const rawReceivingGas: ReceivingRecord[] = res.data.receivingRecords || [];
-        const seenGasIds = new Set<string>();
-        const cleanReceivingGas: ReceivingRecord[] = [];
-        rawReceivingGas.forEach((r) => {
-          if (r && r.id && !seenGasIds.has(r.id)) {
-            seenGasIds.add(r.id);
-            let rawList: (string | ReceivingAttachmentItem)[] = [];
-            if (Array.isArray(r.attachments)) {
-              rawList = r.attachments;
-            } else if (
-              typeof (r as any).attachments === 'string' &&
-              ((r as any).attachments as string).trim() !== ''
-            ) {
-              try {
-                const parsed = JSON.parse((r as any).attachments);
-                if (Array.isArray(parsed)) rawList = parsed;
-                else if (typeof parsed === 'string' || typeof parsed === 'object') rawList = [parsed];
-              } catch {
-                rawList = [];
-              }
-            }
-            cleanReceivingGas.push({
-              ...r,
-              attachments: rawList.map(normalizeAttachmentItem),
-            });
-          }
-        });
-
-        const data: PurchasingDbData = {
-          suppliers: formattedSuppliers,
-          rmItems: res.data.rmItems || [],
-          defectMatrix: (res.data.defectMatrix as Record<string, DefectRule[]>) || {},
-          defectCategories: res.data.defectCategories || [],
-          receivingRecords: cleanReceivingGas,
-          issueLogs: res.data.issueLogs || [],
-        };
-
+        const data = this._normalizeApiData(res.data);
         console.log(
-          '[PurchasingGasService] ✅ Real data loaded successfully from GAS Google Sheet:',
+          '[PurchasingGasService] ✅ Real data loaded from GAS:',
           'suppliers=', data.suppliers.length,
           'rmItems=', data.rmItems.length,
           'receivingRecords=', data.receivingRecords.length,
           'issueLogs=', data.issueLogs.length
         );
-
-        // Cache real data only
         this.saveToLocalStorage(data);
         return data;
       } else {
@@ -242,6 +213,45 @@ export class PurchasingGasService {
       this._lastMeta = { source: 'network_error', error: String(err) };
       throw err;
     }
+  }
+
+  // --- Shared data normalization pipeline ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static _normalizeApiData(raw: any): PurchasingDbData {
+    const rawSuppliers: Supplier[] = raw.suppliers || [];
+    const suppliers = rawSuppliers.map((s) => ({
+      ...s,
+      phone: formatPhoneNumber(s.phone) === '-' ? '' : formatPhoneNumber(s.phone),
+    }));
+
+    const rawReceiving: ReceivingRecord[] = raw.receivingRecords || [];
+    const seenIds = new Set<string>();
+    const receivingRecords: ReceivingRecord[] = [];
+    rawReceiving.forEach((r) => {
+      if (r && r.id && !seenIds.has(r.id)) {
+        seenIds.add(r.id);
+        let rawList: (string | ReceivingAttachmentItem)[] = [];
+        if (Array.isArray(r.attachments)) {
+          rawList = r.attachments;
+        } else if (typeof (r as any).attachments === 'string' && ((r as any).attachments as string).trim() !== '') {
+          try {
+            const parsed = JSON.parse((r as any).attachments);
+            if (Array.isArray(parsed)) rawList = parsed;
+            else if (parsed) rawList = [parsed];
+          } catch { rawList = []; }
+        }
+        receivingRecords.push({ ...r, attachments: rawList.map(normalizeAttachmentItem) });
+      }
+    });
+
+    return {
+      suppliers,
+      rmItems: raw.rmItems || [],
+      defectMatrix: (raw.defectMatrix as Record<string, DefectRule[]>) || {},
+      defectCategories: raw.defectCategories || [],
+      receivingRecords,
+      issueLogs: raw.issueLogs || [],
+    };
   }
 
   // --- Real Data Cache Storage (No Mock Data) ---
