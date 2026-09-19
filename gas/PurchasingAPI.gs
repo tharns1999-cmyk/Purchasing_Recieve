@@ -1181,39 +1181,7 @@ function logAuditEntry(clientMeta, action, moduleName, recordId, details) {
 const ATTACHMENT_FOLDER_NAME = 'RM_Receiving_Attachments';
 
 function getOrCreateReceivingAttachmentsFolder() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let parentFolder = DriveApp.getRootFolder();
-    try {
-      const ssFile = DriveApp.getFileById(ss.getId());
-      const parents = ssFile.getParents();
-      if (parents.hasNext()) {
-        parentFolder = parents.next();
-      }
-    } catch (e) {
-      Logger.log('Could not get parent folder of spreadsheet: ' + e.toString());
-    }
-
-    const folders = parentFolder.getFoldersByName(ATTACHMENT_FOLDER_NAME);
-    if (folders.hasNext()) {
-      const folder = folders.next();
-      try {
-        folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      } catch (e2) {}
-      return folder;
-    }
-
-    const newFolder = parentFolder.createFolder(ATTACHMENT_FOLDER_NAME);
-    try {
-      newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (e3) {}
-    return newFolder;
-  } catch (err) {
-    Logger.log('getOrCreateReceivingAttachmentsFolder fallback to root: ' + err.toString());
-    const rootFolders = DriveApp.getFoldersByName(ATTACHMENT_FOLDER_NAME);
-    if (rootFolders.hasNext()) return rootFolders.next();
-    return DriveApp.createFolder(ATTACHMENT_FOLDER_NAME);
-  }
+  return DriveApp.getFolderById('1F2DCf0krHezXt5eJq_A_Csni91JY6I8K');
 }
 
 /**

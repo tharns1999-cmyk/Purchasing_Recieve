@@ -1517,26 +1517,7 @@ function logAuditEntry(clientMeta, action, moduleName, recordId, details) {
 // =========================================================================
 
 function getOrCreateReceivingAttachmentsFolder() {
-  const folderNames = ['RM_Attachments', 'RM_Receiving_Attachments'];
-  for (let i = 0; i < folderNames.length; i++) {
-    const folders = DriveApp.getFoldersByName(folderNames[i]);
-    if (folders.hasNext()) {
-      return folders.next();
-    }
-  }
-  
-  try {
-    const newFolder = DriveApp.createFolder('RM_Attachments');
-    try {
-      newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (e) {
-      Logger.log('Could not set public sharing on folder: ' + e.toString());
-    }
-    return newFolder;
-  } catch (err) {
-    Logger.log('DriveApp.createFolder failed, using Root folder: ' + err.toString());
-    return DriveApp.getRootFolder();
-  }
+  return DriveApp.getFolderById('1F2DCf0krHezXt5eJq_A_Csni91JY6I8K');
 }
 
 function extractDriveFileId(url) {
