@@ -50,17 +50,24 @@ export class GasRepository extends LocalStorageRepository {
 
   private get gasApiUrl(): string {
     const envUrl = (import.meta as any).env?.VITE_GAS_API_URL;
+    const defaultUrl = 'https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec';
+
     if (typeof window !== 'undefined') {
       const customUrl = localStorage.getItem('GAS_API_URL');
       if (customUrl) {
-        if (customUrl.includes('AKfycbwF-') || customUrl.includes('AKfycbzGVSL')) {
+        const trimmed = customUrl.trim().replace(/^['"]|['"]$/g, '');
+        // Purge any stale, broken or deprecated deployment URLs from localStorage
+        if (trimmed !== defaultUrl) {
           localStorage.removeItem('GAS_API_URL');
-        } else {
-          return customUrl;
         }
       }
     }
-    return envUrl || 'https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec';
+
+    const raw = (envUrl && typeof envUrl === 'string' && envUrl.trim())
+      ? envUrl.trim().replace(/^['"]|['"]$/g, '')
+      : defaultUrl;
+    const clean = (raw.includes('?') ? raw.substring(0, raw.indexOf('?')) : raw).replace(/\/+$/, '');
+    return clean.endsWith('/exec') ? clean : `${clean}/exec`;
   }
 
   private get isGasApiAvailable(): boolean {
@@ -75,7 +82,7 @@ export class GasRepository extends LocalStorageRepository {
     payload: Record<string, unknown> = {},
     timeoutMs = 20000
   ): Promise<T> {
-    const url = this.gasApiUrl;
+    const rawUrl = this.gasApiUrl;
 
     // Detect if running inside Google Apps Script Web App (window.google.script.run exists)
     const win = typeof window !== 'undefined' ? (window as any) : null;
@@ -100,12 +107,24 @@ export class GasRepository extends LocalStorageRepository {
       });
     }
 
-    if (!url) {
+    if (!rawUrl) {
       throw new Error('VITE_GAS_API_URL is not configured in .env');
     }
 
-    const separator = url.includes('?') ? '&' : '?';
-    const targetUrl = `${url}${separator}action=${encodeURIComponent(action)}&api=true`;
+    let targetUrlObj: URL;
+    try {
+      targetUrlObj = new URL(rawUrl);
+    } catch {
+      targetUrlObj = new URL('https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec');
+    }
+    targetUrlObj.searchParams.set('action', action);
+    targetUrlObj.searchParams.set('api', 'true');
+    if (payload.forceRefresh) {
+      targetUrlObj.searchParams.set('forceRefresh', 'true');
+    }
+    const targetUrl = targetUrlObj.toString();
+
+    console.log('Fetching target URL:', targetUrl);
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);

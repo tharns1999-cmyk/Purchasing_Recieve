@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/clean.js && tsc -b && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json,md}\"",
     "preview": "vite preview",
@@ -14,7 +14,7 @@
     "test:e2e": "playwright test",
     "build:gas": "vite build --mode gas && node scripts/build-gas.js",
     "push:gas": "npx @google/clasp push -f",
-    "deploy:gas": "npm run build:gas && npx @google/clasp push -f && npx @google/clasp deploy -i AKfycbzm9dELC42nwdQweQXjjS7D797bBEKdRO5cavD9KsqqJP5PX7txDFAVSszYwifkGayT"
+    "deploy:gas": "npm run build:gas && npx @google/clasp push -f && npx @google/clasp deploy -i AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q"
   },
   "dependencies": {
     "clsx": "^2.1.1",
