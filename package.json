@@ -14,7 +14,7 @@
     "test:e2e": "playwright test",
     "build:gas": "vite build --mode gas && node scripts/build-gas.js",
     "push:gas": "npx @google/clasp push -f",
-    "deploy:gas": "npm run build:gas && npx @google/clasp push -f && npx @google/clasp deploy -i AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q"
+    "deploy:gas": "npm run build:gas && npx @google/clasp push -f && npx @google/clasp deploy -i AKfycbxTUQUJ_lQQXVCsmbbXoCCjnT67I8jmb_ZOy3ic2L82_0AcwVaKkTIqB3vXjabIUDGJ"
   },
   "dependencies": {
     "clsx": "^2.1.1",

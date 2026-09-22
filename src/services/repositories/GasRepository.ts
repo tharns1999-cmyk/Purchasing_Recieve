@@ -50,7 +50,7 @@ export class GasRepository extends LocalStorageRepository {
 
   private get gasApiUrl(): string {
     const envUrl = (import.meta as any).env?.VITE_GAS_API_URL;
-    const defaultUrl = 'https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec';
+    const defaultUrl = 'https://script.google.com/macros/s/AKfycbxTUQUJ_lQQXVCsmbbXoCCjnT67I8jmb_ZOy3ic2L82_0AcwVaKkTIqB3vXjabIUDGJ/exec';
 
     if (typeof window !== 'undefined') {
       const customUrl = localStorage.getItem('GAS_API_URL');
@@ -115,7 +115,7 @@ export class GasRepository extends LocalStorageRepository {
     try {
       targetUrlObj = new URL(rawUrl);
     } catch {
-      targetUrlObj = new URL('https://script.google.com/macros/s/AKfycbxqbf_OCtXGSFMSjoUb73_Kc2HOROvOV49St6eJFv1_e6qnrgYjmeCeBv_hQ_HVu93Q/exec');
+      targetUrlObj = new URL('https://script.google.com/macros/s/AKfycbxTUQUJ_lQQXVCsmbbXoCCjnT67I8jmb_ZOy3ic2L82_0AcwVaKkTIqB3vXjabIUDGJ/exec');
     }
     targetUrlObj.searchParams.set('action', action);
     targetUrlObj.searchParams.set('api', 'true');
